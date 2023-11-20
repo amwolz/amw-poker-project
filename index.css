@@ -1,0 +1,29 @@
+body{
+    background-image: url(images/poker-table.jpg);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+}
+.player{
+    height: 250px;
+    width: 150px;
+    background-color: #f5f5f5;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 10px;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding-top: 0px;
+}
+.player img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 50%;
+}
+
+.player h1, .player p {
+    margin: 0;
+    padding: 0;
+}
