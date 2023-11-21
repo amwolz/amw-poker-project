@@ -16,10 +16,19 @@ function welcomeClick(img) {
     wim3.style.backgroundColor = "#f4f4f4";
     wim4.style.backgroundColor = "#f4f4f4";    
     div.style.backgroundColor = "lightcoral";
-    charSelect = welcomeDict[img]
+    charSelect = welcomeDict[img];
 }
 
 function goToGame() {
     username = document.getElementById("textInput").value;
-    window.location.href = "index.html"
+    localStorage.setItem("username", username);
+    localStorage.setItem("charSelect", charSelect);
+    // window.location.href = "index.html"
+
 }
+
+function startPage() {
+    document.getElementById("userName").innerHTML = localStorage.getItem("username");
+    document.getElementById("userPic").src = localStorage.getItem("charSelect");
+}
+

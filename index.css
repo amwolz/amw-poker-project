@@ -8,13 +8,13 @@ body{
 .player{
     height: 250px;
     width: 150px;
-    background-color: #f5f5f5;
-    border: 2px solid #ddd;
+    /* background-color: #f5f5f5; */
+    /* border: 2px solid #ddd; */
     border-radius: 8px;
     padding: 10px;
     margin: 10px;
     text-align: center;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); */
     padding-top: 0px;
 }
 .player img {
@@ -26,7 +26,14 @@ body{
     z-index: 1;
 }
 
-.player h1, .player p {
+.player h1 {
+    margin: 0px;
+    padding: 0px;
+    white-space: nowrap;
+    color: #f4f4f4;
+}
+
+.player p {
     margin: 0px;
     padding: 0px;
     white-space: nowrap;
@@ -43,3 +50,60 @@ body{
     position: relative;
     z-index: 2;
   }
+
+#chips {
+    height: 30px;
+}
+.info{
+    text-align: center;
+    /* background-color: red; */
+}
+.info p{
+    font-size: 1.5em;
+    color: #f4f4f4;
+}
+#p1 {
+    position: fixed;
+    top: 65%;
+    right: 45%;
+}
+#p2 {
+    position: fixed;
+    top: 45%;
+    right: 75%;
+}
+#p3 {
+    position: fixed;
+    top: 60%;
+    right: 60%;
+}
+#p4 {
+    position: fixed;
+    top: 60%;
+    right: 30%;
+}
+#p5 {
+    position: fixed;
+    top: 45%;
+    right: 15%;
+}
+
+.imageu-container {
+    position: relative;
+    display: inline-block; /* Ensures the container wraps around the image */
+}
+
+.imageu-container img {
+    display: block; /* Remove extra space below the image */
+}
+
+.imageu-overlay {
+    position: absolute;
+    border-radius: 50%;
+    padding-bottom: 0px;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: darkslategrey; /* Set your desired background color */
+}
