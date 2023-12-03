@@ -32,6 +32,48 @@ function startPage() {
     document.getElementById("userPic").src = localStorage.getItem("charSelect");
 }
 
+function updateTextbox() {
+    const rangeValue = document.getElementById('myRange').value;
+    document.getElementById('myTextbox').value = rangeValue;
+}
+
+function updateSlider() {
+    const textboxValue = document.getElementById('myTextbox').value;
+    if (textboxValue == "") {
+        document.getElementById('myRange').value = 0
+    }
+    else {
+        document.getElementById('myRange').value = textboxValue;
+    }
+}
+
+class Frontend{
+    constructor() {
+
+    }
+
+    static showDiv(id) {
+        // id is string input of div id
+        var div = document.getElementById(id);
+        div.style.display = 'block';
+    }
+
+    static hideDiv(id) {
+        var div = document.getElementById(id);
+        div.style.display = 'none';
+    }
+
+    static toggleDiv(id) {
+        var div = document.getElementById(id);
+        if(div.style.display = 'block') {
+            div.style.display = 'none'
+        }
+        else {
+            div.style.display = 'block'
+        }
+    }
+}
+
 class Player {
     constructor(robot, name) {
         this.isrobot = robot;
@@ -40,6 +82,10 @@ class Player {
         this.cards = ['', '']; 
         this.active = true;  
         this.inRound = true;    
+    }
+    promptMove() {
+        Frontend.showDiv('actionContainer')
+        
     }
 }
 
@@ -181,7 +227,8 @@ class Hand {
     bettingRound(cards, players){
         for (player of players) {
             if (player.active) {
-                
+                const action = player.promptMove()
+
             }
         }
     }
@@ -190,4 +237,23 @@ class Hand {
 function main() {
 
     return null
+}
+
+class Actions {
+    generator() {
+
+    }
+
+    static raiseAction() {
+        alert("raise")
+    }
+
+    static checkcallAction() {
+        alert("checkcall")
+    }
+
+    static foldAction() {
+        alert("fold")
+    }
+
 }

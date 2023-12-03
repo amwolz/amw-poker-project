@@ -67,6 +67,21 @@
             <p>test</p>
         </div>
     </div>
+    <div id="actionContainer">
+        <div class="action" id="raise">
+            <input type="range" id="myRange" name="myRange" min="0" max="100" value="0" oninput="updateTextbox()">
+            <br>
+            <label id="raiseLabel" for="myTextbox"  onclick="Actions.raiseAction()">Raise:</label>
+            <input type="text" id="myTextbox" name="myTextbox" value="0" oninput="updateSlider()">
+        </div>
+        <div class="action" id="check" onclick="Actions.checkcallAction()">
+            <p>Check Call Test</p>
+        </div>
+        <div class="action" id="fold" onclick="Actions.foldAction()">
+            <p>Fold</p>
+        </div>
+    </div>
+    
     <script src="index.js"></script>
 </body>
 </html>
