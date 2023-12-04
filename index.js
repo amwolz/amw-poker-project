@@ -78,24 +78,34 @@ class Player {
     constructor(robot, name) {
         this.isrobot = robot;
         this.name = name;
-        this.initialMoney = 200;
+        this.money = 200;
         this.cards = ['', '']; 
         this.active = true;  
-        this.inRound = true;    
+        this.inRound = true;
+        this.isTurn = false;   
+        this.bet = 0;
     }
     promptMove() {
         Frontend.showDiv('actionContainer')
-        
+        this.isTurn = true;
+        while (this.isTurn == false) {
+        }
+
+
+
+
     }
+
 }
 
-p1 = new Player(false, username)
-p2 = new Player(false, "Stephen")
-p3 = new Player(false, "Alyssa")
-p4 = new Player(false, "Eric")
-p5 = new Player(false, "Alex")
+p1 = new Player(false, username);
+p2 = new Player(false, "Stephen");
+p3 = new Player(false, "Alyssa");
+p4 = new Player(false, "Eric");
+p5 = new Player(false, "Alex");
 
-players = [p1, p2, p3, p4, p5]
+players = [p1, p2, p3, p4, p5];
+var inTurn = false;
 
 // a = shuffleDeck()
 // for (var card of a) {
@@ -185,7 +195,7 @@ class DealCards {
 
 
 class BettingRound {
-    generator(cards, players){
+    constructor(cards, players){
         this.flop = {cards: flop,
                     active: false};
         this.turn = {cards: turn,
@@ -220,7 +230,7 @@ class BettingRound {
 }
 
 class Hand {
-    generator() {
+    constructor() {
         dealtCards = new DealCards()
         this.bettingRound(['back', 'back', 'back', 'back', 'back'], players)
     }
@@ -240,12 +250,13 @@ function main() {
 }
 
 class Actions {
-    generator() {
+    constructor() {
 
     }
 
     static raiseAction() {
-        alert("raise")
+        // alert("raise")
+        return this.response(raiseAction)
     }
 
     static checkcallAction() {
@@ -254,6 +265,18 @@ class Actions {
 
     static foldAction() {
         alert("fold")
+    }
+    static response(){
+        const resp = actionFunction()
+        return resp
+    }
+
+    static getIsTurnPlayer() {
+        for (player of players) {
+            if (player.isTurn == true) {
+                return player
+            }
+        }
     }
 
 }
