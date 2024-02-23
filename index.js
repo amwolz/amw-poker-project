@@ -85,14 +85,16 @@ class Player {
         this.isTurn = false;   
         this.bet = 0;
     }
+    delayedFunction() {
+        console.log("This message will appear after 3 seconds.");
+    }
     promptMove() {
         Frontend.showDiv('actionContainer')
         this.isTurn = true;
-        while (this.isTurn == false) {
+        while (this.isTurn == true) {
         }
-
-
-
+        Frontend.hideDiv('actionContainer')
+        setTimeout(this.delayedFunction, 3000)
 
     }
 
@@ -245,7 +247,8 @@ class Hand {
 }
 
 function main() {
-
+    Frontend.hideDiv("actionContainer")
+    console.log("test start")
     return null
 }
 
@@ -280,3 +283,5 @@ class Actions {
     }
 
 }
+
+main();
