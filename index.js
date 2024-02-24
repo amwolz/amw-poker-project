@@ -8,6 +8,60 @@ var wim1 = document.getElementById("wim1");
 var wim2 = document.getElementById("wim2");
 var wim3 = document.getElementById("wim3");
 var wim4 = document.getElementById("wim4");
+var cardDict = {
+    "C2" : "images/cards/clubs_2.png",
+    "C3": "images/cards/clubs_3.png",
+    "C4": "images/cards/clubs_4.png",
+    "C5": "images/cards/clubs_5.png",
+    "C6": "images/cards/clubs_6.png",
+    "C7": "images/cards/clubs_7.png",
+    "C8": "images/cards/clubs_8.png",
+    "C9": "images/cards/clubs_9.png",
+    "C10": "images/cards/clubs_10.png",
+    "CJ": "images/cards/clubs_jack.png",
+    "CQ": "images/cards/clubs_queen.png",
+    "CK": "images/cards/clubs_king.png",
+    "CA": "images/cards/clubs_ace.png",
+    "D2": "images/cards/diamonds_2.png",
+    "D3": "images/cards/clubs_3.png",
+    "D4": "images/cards/clubs_4.png",
+    "D5": "images/cards/clubs_5.png",
+    "D6": "images/cards/clubs_6.png",
+    "D7": "images/cards/clubs_7.png",
+    "D8": "images/cards/clubs_8.png",
+    "D9": "images/cards/clubs_9.png",
+    "D10": "images/cards/clubs_10.png",
+    "DJ": "images/cards/clubs_jack.png",
+    "DQ": "images/cards/clubs_queen.png",
+    "DK": "images/cards/clubs_king.png",
+    "DA": "images/cards/clubs_ace.png",
+    "H2" : "images/cards/hearts_2.png",
+    "H3" : "images/cards/hearts_3.png",
+    "H4" : "images/cards/hearts_4.png",
+    "H5" : "images/cards/hearts_5.png",
+    "H6" : "images/cards/hearts_6.png",
+    "H7" : "images/cards/hearts_7.png",
+    "H8" : "images/cards/hearts_8.png",
+    "H9" : "images/cards/hearts_9.png",
+    "H10" : "images/cards/hearts_10.png",
+    "HJ" : "images/cards/hearts_jack.png",
+    "HQ" : "images/cards/hearts_queen.png",
+    "HK" : "images/cards/hearts_king.png",
+    "HA" : "images/cards/hearts_ace.png",
+    "S2" : "images/cards/spades_2.png",
+    "S3" : "images/cards/spades_3.png",
+    "S4" : "images/cards/spades_4.png",
+    "S5" : "images/cards/spades_5.png",
+    "S6" : "images/cards/spades_6.png",
+    "S7" : "images/cards/spades_7.png",
+    "S8" : "images/cards/spades_8.png",
+    "S9" : "images/cards/spades_9.png",
+    "S10" : "images/cards/spades_10.png",
+    "SJ" : "images/cards/spades_jack.png",
+    "SQ" : "images/cards/spades_queen.png",
+    "SK" : "images/cards/spades_king.png",
+    "SA" : "images/cards/spades_ace.png",
+}
 
 function welcomeClick(img) {
     var div = document.getElementById(img);
@@ -72,12 +126,17 @@ class Frontend{
             div.style.display = 'block'
         }
     }
+    static changeImage(id, imageSource) {
+        var img = document.getElementById(id);
+        img.src = imageSource;
+    }
 }
 
 class Player {
-    constructor(robot, name) {
+    constructor(robot, name, id) {
         this.isrobot = robot;
         this.name = name;
+        this.id = id;
         this.money = 200;
         this.cards = ['', '']; 
         this.active = true;  
@@ -88,8 +147,11 @@ class Player {
     delayedFunction() {
         console.log("This message will appear after 3 seconds.");
     }
-    promptMove() {
+    promptMove(player) {
         Frontend.showDiv('actionContainer')
+        Frontend.changeImage(player.id + 'c1', Utils.translateCard(player.card1))
+        Frontend.changeImage(player.id + 'c2', Utils.translateCard(player.card2))
+
         this.isTurn = true;
         while (this.isTurn == true) {
         }
@@ -100,11 +162,11 @@ class Player {
 
 }
 
-p1 = new Player(false, username);
-p2 = new Player(false, "Stephen");
-p3 = new Player(false, "Alyssa");
-p4 = new Player(false, "Eric");
-p5 = new Player(false, "Alex");
+p1 = new Player(false, username, 'p1');
+p2 = new Player(false, "Stephen", 'p2');
+p3 = new Player(false, "Alyssa", 'p3');
+p4 = new Player(false, "Eric", 'p4');
+p5 = new Player(false, "Alex", 'p5');
 
 players = [p1, p2, p3, p4, p5];
 var inTurn = false;
@@ -150,7 +212,7 @@ class DealCards {
         }
       
         return deck;
-      }
+    }
 
     deal(numPlayers) {
         var deck = this.shuffleDeck();
@@ -232,22 +294,43 @@ class BettingRound {
 }
 
 class Hand {
+    static activePlayers = players.filter(player => player.active === true);
     constructor() {
-        dealtCards = new DealCards()
-        this.bettingRound(['back', 'back', 'back', 'back', 'back'], players)
+        dealtCards = new DealCards(activePlayers)
+        const card1 = dealtCards.board[0]
+        const card2 = dealtCards.board[1]
+        const card3 = dealtCards.board[2]
+        const card4 = dealtCards.board[3]
+        const card5 = dealtCards.board[4]
+        // cards are dealt/assigned to each player and board
+        this.bettingRound(['back', 'back', 'back', 'back', 'back'], activePlayers)
     }
     bettingRound(cards, players){
-        for (player of players) {
-            if (player.active) {
-                const action = player.promptMove()
+        for (player of activePlayers) {
+            if (player.inRound) {
+                Player.promptMove(player)
+                
+
+
+
 
             }
         }
     }
 }
 
+
+// want to init UI, then automatically(?) prompt Hand to handle a bettinground
+// within Hand, we want to deal cards to active players first, then start the first
+// bettinground with input 5 cards facedown. Then iterate through bettingroudn with flop, turn
+// river. Then if players are stil "in" round show cards and calculate winner 
+
 function main() {
-    Frontend.hideDiv("actionContainer")
+    // Frontend.hideDiv("actionContainer")
+    // Frontend.hideDiv("card5")
+    // Frontend.hideDiv("cardContainer")
+    // Frontend.changeImage("card1Image", "images/cards/clubs_2.png")
+    new Hand
     console.log("test start")
     return null
 }
@@ -283,5 +366,20 @@ class Actions {
     }
 
 }
+
+class Utils {
+    constructor() {}
+    static translateCard(card){
+        // card is a set of string vals, ex ['H', '4']
+        // returns path of image representing card
+        return cardDict[card.join("")]
+    }
+
+
+    
+
+}
+
+
 
 main();

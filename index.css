@@ -17,7 +17,14 @@ body{
     /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); */
     padding-top: 0px;
 }
-.player img {
+
+.playerinfo{
+    position: relative;
+    top: -10%;
+    z-index: -1;
+}
+
+.playerimg {
     max-width: 100%;
     height: auto;
     border-radius: 50%;
@@ -64,28 +71,42 @@ body{
 }
 #p1 {
     position: fixed;
-    top: 65%;
+    top: 55%;
     right: 45%;
 }
 #p2 {
     position: fixed;
-    top: 45%;
+    top: 35%;
     right: 75%;
 }
 #p3 {
     position: fixed;
-    top: 60%;
+    top: 50%;
     right: 60%;
 }
 #p4 {
     position: fixed;
-    top: 60%;
+    top: 50%;
     right: 30%;
 }
 #p5 {
     position: fixed;
-    top: 45%;
+    top: 35%;
     right: 15%;
+}
+
+#dealer {
+    position: absolute;
+    top: 2%;
+    right: 50%;
+}
+
+#deckd {
+    border-radius: 0;
+    position: relative;
+    top: -20%;
+    left: 20%;
+    z-index: 1;
 }
 
 .imageu-container {
@@ -154,4 +175,30 @@ body{
 }
 #raiseLabel {
     background-color: grey;
+}
+
+#cardContainer {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    width: 30%;
+}
+.card {
+    width: 10vh;
+    height: auto;
+    margin-right: 10px;
+}
+.card img {
+    width: 100%;
+    height: 100%;
+}
+.playerCard {
+    width: 25%; 
+    height: auto; 
+    border-radius: 0;
+    display:;
 }
