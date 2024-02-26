@@ -23,18 +23,18 @@ var cardDict = {
     "CK": "images/cards/clubs_king.png",
     "CA": "images/cards/clubs_ace.png",
     "D2": "images/cards/diamonds_2.png",
-    "D3": "images/cards/clubs_3.png",
-    "D4": "images/cards/clubs_4.png",
-    "D5": "images/cards/clubs_5.png",
-    "D6": "images/cards/clubs_6.png",
-    "D7": "images/cards/clubs_7.png",
-    "D8": "images/cards/clubs_8.png",
-    "D9": "images/cards/clubs_9.png",
-    "D10": "images/cards/clubs_10.png",
-    "DJ": "images/cards/clubs_jack.png",
-    "DQ": "images/cards/clubs_queen.png",
-    "DK": "images/cards/clubs_king.png",
-    "DA": "images/cards/clubs_ace.png",
+    "D3": "images/cards/diamonds_3.png",
+    "D4": "images/cards/diamonds_4.png",
+    "D5": "images/cards/diamonds_5.png",
+    "D6": "images/cards/diamonds_6.png",
+    "D7": "images/cards/diamonds_7.png",
+    "D8": "images/cards/diamonds_8.png",
+    "D9": "images/cards/diamonds_9.png",
+    "D10": "images/cards/diamonds_10.png",
+    "DJ": "images/cards/diamonds_jack.png",
+    "DQ": "images/cards/diamonds_queen.png",
+    "DK": "images/cards/diamonds_king.png",
+    "DA": "images/cards/diamonds_ace.png",
     "H2" : "images/cards/hearts_2.png",
     "H3" : "images/cards/hearts_3.png",
     "H4" : "images/cards/hearts_4.png",
@@ -101,6 +101,70 @@ function updateSlider() {
     }
 }
 
+// var stopGate = false;
+
+// let userActionPromiseResolver;
+
+
+// function waitForUserAction() {
+//     userActionPromise = new Promise(resolve => {
+//         userActionPromiseResolver = resolve;
+//     });
+//     return userActionPromise
+// }
+
+// function setUserAction(action) {
+//     if (typeof userActionPromiseResolver === 'function') {
+//         userActionPromiseResolver(action);
+//         userActionPromiseResolver = null;
+//     }
+// }
+
+var userResponse = false;
+
+async function setUserAction(action) {
+    userRespone = true;
+    return 
+}
+
+let i = 0;
+
+function delayedLog() {
+  console.log(i);
+  i++;
+  
+  if (i < 10) {
+    if (userResponse == true) {
+        
+    }
+    setTimeout(delayedLog, 1000);
+  }
+  else {
+    i = 0;
+  }
+}
+
+async function listenerUserAction() {
+    return new Promise((resolve) => {
+        // while (userResponse == false) {
+        // setTimeout(console.log("listen"), 1000)
+        // }
+        // resolve
+        delayedLog()
+        setTimeout(resolve, 2000);
+    })
+}
+
+async function asyncAwaitUserResponse() {
+    console.log("start waiting for user input");
+
+    await listenerUserAction();
+
+    // const userAction = await userActionPromise;
+    console.log("user input received");
+    return "done";
+}
+
 class Frontend{
     constructor() {
 
@@ -138,7 +202,8 @@ class Player {
         this.name = name;
         this.id = id;
         this.money = 200;
-        this.cards = ['', '']; 
+        this.card1 = ''; 
+        this.card2 = '';
         this.active = true;  
         this.inRound = true;
         this.isTurn = false;   
@@ -147,16 +212,20 @@ class Player {
     delayedFunction() {
         console.log("This message will appear after 3 seconds.");
     }
-    promptMove(player) {
+    async promptMove() {
+        console.log(this.card1)
+        console.log(this.card2)
+        console.log("test1")
         Frontend.showDiv('actionContainer')
-        Frontend.changeImage(player.id + 'c1', Utils.translateCard(player.card1))
-        Frontend.changeImage(player.id + 'c2', Utils.translateCard(player.card2))
-
-        this.isTurn = true;
-        while (this.isTurn == true) {
-        }
-        Frontend.hideDiv('actionContainer')
-        setTimeout(this.delayedFunction, 3000)
+        Frontend.changeImage(this.id + 'c1', Utils.translateCard(this.card1))
+        Frontend.changeImage(this.id + 'c2', Utils.translateCard(this.card2))
+        var response = await asyncAwaitUserResponse()
+        console.log("response responded to" + response)
+        // this.isTurn = true;
+        // while (this.isTurn == true) {
+        // }
+        // Frontend.hideDiv('actionContainer')
+        // setTimeout(this.delayedFunction, 3000)
 
     }
 
@@ -183,9 +252,11 @@ class DealCards {
         this.pockets = deal[0]
         this.board = deal[1]
         // deals cards
-        for (const player of players) {
+        for (var player of players) {
             this.player = player;
-            this.player.cards = this.pockets.pop();
+            const cards = this.pockets.pop();
+            this.player.card1 = cards[0];
+            this.player.card2 = cards[1];
         }
         this.flop = this.board.slice(0,3);
         this.turn = this.board[3];
@@ -234,14 +305,14 @@ class DealCards {
 // test = new DealCards(players)
 
 // console.log('a')
-// for (card of test.board) {
+// for (let card of test.board) {
 //     console.log(card)
 // }
 
 // console.log('space')
 
-// for (p of players) {
-//     for (c of p.cards) {
+// for (let p of players) {
+//     for (let c of p.cards) {
 //         console.log(c)
 //     }
 //     console.log('')
@@ -250,7 +321,7 @@ class DealCards {
 // console.log(test.board)
 // console.log('lgop')
 // console.log(test.flop)
-// for (c of test.flop) {
+// for (let c of test.flop) {
 //     console.log(c)
 // }
 
@@ -294,21 +365,24 @@ class BettingRound {
 }
 
 class Hand {
-    static activePlayers = players.filter(player => player.active === true);
     constructor() {
-        dealtCards = new DealCards(activePlayers)
+        this.activePlayers = players.filter(player => player.active === true);
+        console.log(this.activePlayers)
+        const dealtCards = new DealCards(this.activePlayers)
         const card1 = dealtCards.board[0]
         const card2 = dealtCards.board[1]
         const card3 = dealtCards.board[2]
         const card4 = dealtCards.board[3]
         const card5 = dealtCards.board[4]
         // cards are dealt/assigned to each player and board
-        this.bettingRound(['back', 'back', 'back', 'back', 'back'], activePlayers)
+        this.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers)
     }
-    bettingRound(cards, players){
-        for (player of activePlayers) {
+    async bettingRound(cards, players){
+        console.log(this.activePlayers)
+        console.log(players)
+        for (var player of players) {
             if (player.inRound) {
-                Player.promptMove(player)
+                await player.promptMove(player)
                 
 
 
@@ -341,16 +415,19 @@ class Actions {
     }
 
     static raiseAction() {
-        // alert("raise")
-        return this.response(raiseAction)
+        console.log("raise")
+        setUserAction('raise')
     }
 
     static checkcallAction() {
-        alert("checkcall")
+        console.log("check call")
+        setUserAction('checkcall')
+
     }
 
     static foldAction() {
-        alert("fold")
+        console.log("fold")
+        setUserAction('fold')
     }
     static response(){
         const resp = actionFunction()
@@ -358,7 +435,7 @@ class Actions {
     }
 
     static getIsTurnPlayer() {
-        for (player of players) {
+        for (var player of players) {
             if (player.isTurn == true) {
                 return player
             }
