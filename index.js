@@ -122,43 +122,58 @@ function updateSlider() {
 
 var userResponse = false;
 
-async function setUserAction(action) {
-    userRespone = true;
-    return 
+function setUserAction(action) {
+    // userRespone = true;
+    console.log("setUserAction")
+}
+
+function waitUserAction() {
+    return new Promise(resolve => {
+        window.setUserAction = function() {
+            resolve();
+        };
+    });
 }
 
 let i = 0;
 
-function delayedLog() {
-  console.log(i);
-  i++;
+// function delayedLog() {
+//   console.log(i);
+//   i++;
   
-  if (i < 10) {
-    if (userResponse == true) {
-        
-    }
-    setTimeout(delayedLog, 1000);
-  }
-  else {
-    i = 0;
-  }
-}
+//   if (i < 10) {
+//     if (userResponse == true) {
+
+//     }
+//     setTimeout(delayedLog, 1000);
+//   }
+//   else {
+//     i = 0;
+//   }
+// }
 
 async function listenerUserAction() {
     return new Promise((resolve) => {
         // while (userResponse == false) {
         // setTimeout(console.log("listen"), 1000)
         // }
-        // resolve
-        delayedLog()
-        setTimeout(resolve, 2000);
+        // resolve        
+        if (userResponse === true) {
+            console.log(i, true);
+            i = 0;
+            
+        } else {
+            console.log(i, false);
+            setTimeout(listenerUserAction(), 1000);
+            i++;
+        }
     })
 }
 
 async function asyncAwaitUserResponse() {
     console.log("start waiting for user input");
 
-    await listenerUserAction();
+    await waitUserAction();
 
     // const userAction = await userActionPromise;
     console.log("user input received");
@@ -194,6 +209,7 @@ class Frontend{
         var img = document.getElementById(id);
         img.src = imageSource;
     }
+
 }
 
 class Player {
@@ -220,7 +236,10 @@ class Player {
         Frontend.changeImage(this.id + 'c1', Utils.translateCard(this.card1))
         Frontend.changeImage(this.id + 'c2', Utils.translateCard(this.card2))
         var response = await asyncAwaitUserResponse()
-        console.log("response responded to" + response)
+        console.log("response responded to " + response)
+        Frontend.changeImage(this.id + 'c1', Utils.translateCard('back'))
+        Frontend.changeImage(this.id + 'c2', Utils.translateCard('back'))
+
         // this.isTurn = true;
         // while (this.isTurn == true) {
         // }
@@ -368,44 +387,64 @@ class Hand {
     constructor() {
         this.activePlayers = players.filter(player => player.active === true);
         console.log(this.activePlayers)
-        const dealtCards = new DealCards(this.activePlayers)
-        const card1 = dealtCards.board[0]
-        const card2 = dealtCards.board[1]
-        const card3 = dealtCards.board[2]
-        const card4 = dealtCards.board[3]
-        const card5 = dealtCards.board[4]
+        this.dealtCards = new DealCards(this.activePlayers)
+        this.card1 = this.dealtCards.board[0];
+        this.card2 = this.dealtCards.board[1];
+        this.card3 = this.dealtCards.board[2];
+        this.card4 = this.dealtCards.board[3];
+        this.card5 = this.dealtCards.board[4];
+        this.active = true;
+
         // cards are dealt/assigned to each player and board
-        this.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers)
+        // this.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers);
+        // if (this.active) {
+        //     this.bettingRound([this.card1, this.card2, this.card3, 'back', 'back'])
+        // }
     }
     async bettingRound(cards, players){
-        console.log(this.activePlayers)
-        console.log(players)
-        for (var player of players) {
+        console.log(this.activePlayers);
+        console.log(players);
+        
+        for (let i = 1; i <= 5; i++) {
+            console.log(cards[i-1])
+            Frontend.changeImage('card' + i.toString() + 'Image', Utils.translateCard(cards[i - 1]))
+
+        }
+        for (var player of this.activePlayers) {
             if (player.inRound) {
-                await player.promptMove(player)
+                await player.promptMove(player);
                 
-
-
-
 
             }
         }
     }
 }
 
+class Orbit {
+    constructor() {
+
+    }
+    async initialize() {
+        let hand = new Hand;
+        hand.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers);
+    }
+
+}
 
 // want to init UI, then automatically(?) prompt Hand to handle a bettinground
 // within Hand, we want to deal cards to active players first, then start the first
 // bettinground with input 5 cards facedown. Then iterate through bettingroudn with flop, turn
 // river. Then if players are stil "in" round show cards and calculate winner 
 
+
+
 function main() {
     // Frontend.hideDiv("actionContainer")
     // Frontend.hideDiv("card5")
     // Frontend.hideDiv("cardContainer")
     // Frontend.changeImage("card1Image", "images/cards/clubs_2.png")
-    new Hand
-    console.log("test start")
+    let orbit = new Orbit;
+    orbit.initialize();
     return null
 }
 
@@ -449,7 +488,10 @@ class Utils {
     static translateCard(card){
         // card is a set of string vals, ex ['H', '4']
         // returns path of image representing card
-        return cardDict[card.join("")]
+        // exception is 'back'
+        if (card == 'back') {
+            return '/images/cards/back.png'
+        } else return cardDict[card.join("")]
     }
 
 
