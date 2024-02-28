@@ -210,6 +210,11 @@ class Frontend{
         img.src = imageSource;
     }
 
+    static changeTextContent(id, text) {
+        var content = document.getElementById(id)
+        content.textContent = text
+    }
+
 }
 
 class Player {
@@ -224,10 +229,12 @@ class Player {
         this.inRound = true;
         this.isTurn = false;   
         this.bet = 0;
+        Frontend.changeTextContent(this.id + 'p1', this.money)
+        Frontend.changeTextContent(this.id + 'p2', '')
+
+
     }
-    delayedFunction() {
-        console.log("This message will appear after 3 seconds.");
-    }
+
     async promptMove() {
         console.log(this.card1)
         console.log(this.card2)
@@ -249,15 +256,6 @@ class Player {
     }
 
 }
-
-p1 = new Player(false, username, 'p1');
-p2 = new Player(false, "Stephen", 'p2');
-p3 = new Player(false, "Alyssa", 'p3');
-p4 = new Player(false, "Eric", 'p4');
-p5 = new Player(false, "Alex", 'p5');
-
-players = [p1, p2, p3, p4, p5];
-var inTurn = false;
 
 // a = shuffleDeck()
 // for (var card of a) {
@@ -394,6 +392,7 @@ class Hand {
         this.card4 = this.dealtCards.board[3];
         this.card5 = this.dealtCards.board[4];
         this.active = true;
+        this.pot = 0;
 
         // cards are dealt/assigned to each player and board
         // this.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers);
@@ -401,15 +400,17 @@ class Hand {
         //     this.bettingRound([this.card1, this.card2, this.card3, 'back', 'back'])
         // }
     }
-    async bettingRound(cards, players){
+    async bettingRound(cards, players, bigBlindPlayer){
         console.log(this.activePlayers);
         console.log(players);
         
+        // sets the board
         for (let i = 1; i <= 5; i++) {
             console.log(cards[i-1])
             Frontend.changeImage('card' + i.toString() + 'Image', Utils.translateCard(cards[i - 1]))
 
         }
+        // players' turns
         for (var player of this.activePlayers) {
             if (player.inRound) {
                 await player.promptMove(player);
@@ -426,7 +427,13 @@ class Orbit {
     }
     async initialize() {
         let hand = new Hand;
-        hand.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers);
+        await hand.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers);
+        await hand.bettingRound([hand.card1, hand.card2, hand.card3, 'back', 'back'], this.activePlayers);
+        await hand.bettingRound([hand.card1, hand.card2, hand.card3, hand.card4, 'back'], this.activePlayers);
+        await hand.bettingRound([hand.card1, hand.card2, hand.card3, hand.card4, hand.card5], this.activePlayers);
+
+
+        
     }
 
 }
@@ -443,6 +450,17 @@ function main() {
     // Frontend.hideDiv("card5")
     // Frontend.hideDiv("cardContainer")
     // Frontend.changeImage("card1Image", "images/cards/clubs_2.png")
+    p1 = new Player(false, username, 'p1');
+    p2 = new Player(false, "Stephen", 'p2');
+    p3 = new Player(false, "Alyssa", 'p3');
+    p4 = new Player(false, "Eric", 'p4');
+    p5 = new Player(false, "Alex", 'p5');
+
+    players = [p1, p2, p3, p4, p5];
+    var inTurn = false;
+
+
+
     let orbit = new Orbit;
     orbit.initialize();
     return null
