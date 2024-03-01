@@ -125,6 +125,7 @@ var userResponse = false;
 function setUserAction(action) {
     // userRespone = true;
     console.log("setUserAction")
+
 }
 
 function waitUserAction() {
@@ -177,7 +178,7 @@ async function asyncAwaitUserResponse() {
 
     // const userAction = await userActionPromise;
     console.log("user input received");
-    return "done";
+    return userResponse;
 }
 
 class Frontend{
@@ -252,6 +253,13 @@ class Player {
         // }
         // Frontend.hideDiv('actionContainer')
         // setTimeout(this.delayedFunction, 3000)
+        if (response[0] == 'raise'){
+            return [response[0], response[1]]
+        } else if (response[0] == 'checkcall') {
+            return [response[0], response[1]]
+        } else if (response[0] == 'fold') {
+            return [response[0], '']
+        }
 
     }
 
@@ -382,7 +390,8 @@ class BettingRound {
 }
 
 class Hand {
-    constructor() {
+    constructor(littleBlind) {
+        this.littleBlind = littleBlind
         this.activePlayers = players.filter(player => player.active === true);
         console.log(this.activePlayers)
         this.dealtCards = new DealCards(this.activePlayers)
@@ -393,6 +402,8 @@ class Hand {
         this.card5 = this.dealtCards.board[4];
         this.active = true;
         this.pot = 0;
+        this.minBet = 0;
+        this.start = null;
 
         // cards are dealt/assigned to each player and board
         // this.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers);
@@ -400,9 +411,17 @@ class Hand {
         //     this.bettingRound([this.card1, this.card2, this.card3, 'back', 'back'])
         // }
     }
+    async initialize() {
+    
+        await this.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers);
+        await this.bettingRound([this.card1, this.card2, this.card3, 'back', 'back'], this.activePlayers);
+        await this.bettingRound([this.card1, this.card2, this.card3, this.card4, 'back'], this.activePlayers);
+        await this.bettingRound([this.card1, this.card2, this.card3, this.card4, this.card5], this.activePlayers);
+    }
     async bettingRound(cards, players, bigBlindPlayer){
         console.log(this.activePlayers);
         console.log(players);
+        this.minBet = 0;
         
         // sets the board
         for (let i = 1; i <= 5; i++) {
@@ -412,9 +431,22 @@ class Hand {
         }
         // players' turns
         for (var player of this.activePlayers) {
+            
             if (player.inRound) {
-                await player.promptMove(player);
-                
+                // playerAction will be a type array with information about user's action
+                // playerAction will modify player's information in the Player Class, and
+                // will modify game information here below
+                var playerACtion = await player.promptMove(player);
+                if (playerAction[0] == 'raise') {
+                    this.pot += playerAction[1];
+                    this.minBet += playerAction[1];
+
+                } else if (playerAction[0] == 'checkcall') {
+
+                } else if (playerAction[0] == 'fold') {
+
+                }
+
 
             }
         }
@@ -426,11 +458,8 @@ class Orbit {
 
     }
     async initialize() {
-        let hand = new Hand;
-        await hand.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers);
-        await hand.bettingRound([hand.card1, hand.card2, hand.card3, 'back', 'back'], this.activePlayers);
-        await hand.bettingRound([hand.card1, hand.card2, hand.card3, hand.card4, 'back'], this.activePlayers);
-        await hand.bettingRound([hand.card1, hand.card2, hand.card3, hand.card4, hand.card5], this.activePlayers);
+        let hand = new Hand();
+        hand.initialize();
 
 
         
@@ -456,7 +485,7 @@ function main() {
     p4 = new Player(false, "Eric", 'p4');
     p5 = new Player(false, "Alex", 'p5');
 
-    players = [p1, p2, p3, p4, p5];
+    players = [p1, p4, p5, p2, p3];
     var inTurn = false;
 
 
@@ -473,17 +502,20 @@ class Actions {
 
     static raiseAction() {
         console.log("raise")
+        userAction = ['raise', ]
         setUserAction('raise')
     }
 
     static checkcallAction() {
         console.log("check call")
+        userAction = ['checkcall']
         setUserAction('checkcall')
-
+        
     }
 
     static foldAction() {
         console.log("fold")
+        userAction = ['fold']
         setUserAction('fold')
     }
     static response(){
