@@ -121,6 +121,9 @@ function updateSlider() {
 // }
 
 var userResponse = false;
+var currentBet = 0;
+const lbAmount = 1;
+const bbAmount = 2;
 
 function setUserAction(action) {
     // userRespone = true;
@@ -153,23 +156,23 @@ let i = 0;
 //   }
 // }
 
-async function listenerUserAction() {
-    return new Promise((resolve) => {
-        // while (userResponse == false) {
-        // setTimeout(console.log("listen"), 1000)
-        // }
-        // resolve        
-        if (userResponse === true) {
-            console.log(i, true);
-            i = 0;
+// async function listenerUserAction() {
+//     return new Promise((resolve) => {
+//         // while (userResponse == false) {
+//         // setTimeout(console.log("listen"), 1000)
+//         // }
+//         // resolve        
+//         if (userResponse === true) {
+//             console.log(i, true);
+//             i = 0;
             
-        } else {
-            console.log(i, false);
-            setTimeout(listenerUserAction(), 1000);
-            i++;
-        }
-    })
-}
+//         } else {
+//             console.log(i, false);
+//             setTimeout(listenerUserAction(), 1000);
+//             i++;
+//         }
+//     })
+// }
 
 async function asyncAwaitUserResponse() {
     console.log("start waiting for user input");
@@ -178,7 +181,9 @@ async function asyncAwaitUserResponse() {
 
     // const userAction = await userActionPromise;
     console.log("user input received");
+    console.log("userResponse = " + userResponse)
     return userResponse;
+
 }
 
 class Frontend{
@@ -215,6 +220,12 @@ class Frontend{
         var content = document.getElementById(id)
         content.textContent = text
     }
+    static hideCards(playerID) {
+        var card1 = document.getElementById(playerID + 'c1')
+        card1.style.visibility = "hidden";
+        var card2 = document.getElementById(playerID + 'c2')
+        card2.style.visibility = "hidden";
+    }
 
 }
 
@@ -237,29 +248,24 @@ class Player {
     }
 
     async promptMove() {
-        console.log(this.card1)
-        console.log(this.card2)
-        console.log("test1")
-        Frontend.showDiv('actionContainer')
-        Frontend.changeImage(this.id + 'c1', Utils.translateCard(this.card1))
-        Frontend.changeImage(this.id + 'c2', Utils.translateCard(this.card2))
-        var response = await asyncAwaitUserResponse()
-        console.log("response responded to " + response)
-        Frontend.changeImage(this.id + 'c1', Utils.translateCard('back'))
-        Frontend.changeImage(this.id + 'c2', Utils.translateCard('back'))
+        console.log(this.card1);
+        console.log(this.card2);
+        console.log("test1");
+        document.getElementById("myRange").setAttribute("max", this.money);
+        Frontend.showDiv('actionContainer');
+        Frontend.changeImage(this.id + 'c1', Utils.translateCard(this.card1));
+        Frontend.changeImage(this.id + 'c2', Utils.translateCard(this.card2));
+        var response = await asyncAwaitUserResponse();
+        console.log("response responded to " + response);
+        Frontend.changeImage(this.id + 'c1', Utils.translateCard('back'));
+        Frontend.changeImage(this.id + 'c2', Utils.translateCard('back'));
 
         // this.isTurn = true;
         // while (this.isTurn == true) {
         // }
         // Frontend.hideDiv('actionContainer')
         // setTimeout(this.delayedFunction, 3000)
-        if (response[0] == 'raise'){
-            return [response[0], response[1]]
-        } else if (response[0] == 'checkcall') {
-            return [response[0], response[1]]
-        } else if (response[0] == 'fold') {
-            return [response[0], '']
-        }
+        return response;
 
     }
 
@@ -390,7 +396,7 @@ class BettingRound {
 }
 
 class Hand {
-    constructor(littleBlind) {
+    constructor(littleBlind=0) {
         this.littleBlind = littleBlind
         this.activePlayers = players.filter(player => player.active === true);
         console.log(this.activePlayers)
@@ -412,44 +418,100 @@ class Hand {
         // }
     }
     async initialize() {
-    
-        await this.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers);
-        await this.bettingRound([this.card1, this.card2, this.card3, 'back', 'back'], this.activePlayers);
-        await this.bettingRound([this.card1, this.card2, this.card3, this.card4, 'back'], this.activePlayers);
-        await this.bettingRound([this.card1, this.card2, this.card3, this.card4, this.card5], this.activePlayers);
+        let start=false;
+        await this.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers, this.littleBlind, start=true);
+        await this.bettingRound([this.card1, this.card2, this.card3, 'back', 'back'], this.activePlayers, this.littleBlind);
+        await this.bettingRound([this.card1, this.card2, this.card3, this.card4, 'back'], this.activePlayers, this.littleBlind);
+        await this.bettingRound([this.card1, this.card2, this.card3, this.card4, this.card5], this.activePlayers, this.littleBlind);
     }
-    async bettingRound(cards, players, bigBlindPlayer){
-        console.log(this.activePlayers);
-        console.log(players);
+    
+    async bettingRound(cards, players, littleBlindPlayer, start=false){
+        // console.log(this.activePlayers);
+        // console.log(players);
         this.minBet = 0;
-        
+        currentBet = 0;
+        let orderedPlayers = [];
+        // console.log(players);
+        // console.log(littleBlindPlayer, 'lb player')
+        for (let j = 0; j < players.length; j++) {
+            // changes the small and big blind each round
+            // console.log(players[(littleBlindPlayer + j) % players.length])
+            orderedPlayers.push(players[(littleBlindPlayer + j) % players.length])
+        }
+        console.log(orderedPlayers)
         // sets the board
         for (let i = 1; i <= 5; i++) {
-            console.log(cards[i-1])
+            // console.log(cards[i-1])
             Frontend.changeImage('card' + i.toString() + 'Image', Utils.translateCard(cards[i - 1]))
 
         }
+        if (start) {
+            orderedPlayers[0].money -= lbAmount;
+            this.pot += lbAmount;
+            this.updateFrontend(orderedPlayers[0])
+            orderedPlayers[1].money -= bbAmount;
+            this.pot += bbAmount;
+            this.minBet = bbAmount;
+            this.updateFrontend(orderedPlayers[1])
+            orderedPlayers.push(orderedPlayers[0])
+            orderedPlayers.push(orderedPlayers[1])
+            orderedPlayers.splice(0, 2)
+        }
+
         // players' turns
-        for (var player of this.activePlayers) {
-            
+        for (var player of orderedPlayers) {
+            console.log(orderedPlayers)
+            console.log(player)
+            console.log(player.inRound)
             if (player.inRound) {
+                currentBet = this.minBet;
                 // playerAction will be a type array with information about user's action
                 // playerAction will modify player's information in the Player Class, and
                 // will modify game information here below
-                var playerACtion = await player.promptMove(player);
+                this.checkcallHandler(player);
+                var playerAction = await player.promptMove();
+                console.log(this.pot, this.minBet, 'intitial')
                 if (playerAction[0] == 'raise') {
-                    this.pot += playerAction[1];
+                    
+                    this.pot += playerAction[1] + this.minBet;
                     this.minBet += playerAction[1];
+                    player.money -= playerAction[1];
+                    this.updateFrontend(player);
 
                 } else if (playerAction[0] == 'checkcall') {
+                    player.money -= playerAction[1];
+                    this.pot += playerAction[1];
+                    this.updateFrontend(player)
 
                 } else if (playerAction[0] == 'fold') {
-
+                    // already taken care of in promptMove
+                    player.inRound = false;
+                    Frontend.hideCards(player.id)
                 }
+                console.log(this.pot, this.minBet, 'final')
+
+
 
 
             }
         }
+    }
+    checkcallHandler(activePlayer) {
+        if (this.minBet > 0) {
+            if (activePlayer.money >= this.minBet) {
+            Frontend.changeTextContent('checkcallDisplay', 'Call: ' + this.minBet)
+            } else {
+            Frontend.changeTextContent('checkcallDisplay', 'Call: ' + activePlayer.money)
+            }
+        } else {
+            Frontend.changeTextContent('checkcallDisplay', 'Check')
+        }
+    }
+    updateFrontend(player) {
+        Frontend.changeTextContent('potAmount', this.pot)
+        Frontend.changeTextContent('roundInfoParagraph', 'Call: ' + this.minBet)
+        Frontend.changeTextContent(player.id + 'p1', player.money)
+
     }
 }
 
@@ -485,7 +547,9 @@ function main() {
     p4 = new Player(false, "Eric", 'p4');
     p5 = new Player(false, "Alex", 'p5');
 
-    players = [p1, p4, p5, p2, p3];
+
+    players = [p1, p3, p2, p5, p4];
+
     var inTurn = false;
 
 
@@ -502,20 +566,20 @@ class Actions {
 
     static raiseAction() {
         console.log("raise")
-        userAction = ['raise', ]
+        userResponse = ['raise', document.getElementById("myTextbox").value]
         setUserAction('raise')
     }
 
     static checkcallAction() {
         console.log("check call")
-        userAction = ['checkcall']
+        userResponse = ['checkcall', currentBet]
         setUserAction('checkcall')
         
     }
 
     static foldAction() {
         console.log("fold")
-        userAction = ['fold']
+        userResponse = ['fold', '']
         setUserAction('fold')
     }
     static response(){

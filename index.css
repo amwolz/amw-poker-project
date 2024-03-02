@@ -89,6 +89,10 @@ body{
     top: 50%;
     right: 30%;
 }
+#p4Overlay {
+    background-color: rgba(0, 0, 0, 0);
+    z-index: 1;
+}
 #p5 {
     position: fixed;
     top: 35%;
@@ -99,6 +103,42 @@ body{
     position: absolute;
     top: 2%;
     right: 50%;
+}
+
+#roundInfo {
+    position: absolute;
+    top: 2%;
+    left: 50%;
+    width: auto;
+    height: 20vh;
+    background-color: rgba(0, 128, 0, 0.5);
+    border-radius: 10px;
+    display: inline-flex;
+    flex-wrap: wrap;
+}
+#roundInfo span {
+    width: 100%
+}
+#potImg {
+    width: 7vw;
+    height: 15vh;
+    margin-top: -2vh;
+}
+#potAmount {
+    /* position: relative;
+    top: 10%;
+    left: 35%; */
+    position: relative;
+    margin-top: 0vh;
+    /* top: 10%; */
+    font-size: 5vw;
+    color: goldenrod;
+
+}
+#roundInfoParagraph {
+    color: goldenrod;
+    font-size: 5vw;
+    margin-top: -8vh;
 }
 
 #deckd {
@@ -200,5 +240,7 @@ body{
     width: 25%; 
     height: auto; 
     border-radius: 0;
-    display:;
+}
+.i1 {
+    display: inline-block;
 }
