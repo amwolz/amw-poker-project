@@ -458,11 +458,12 @@ class Hand {
             orderedPlayers.splice(0, 2)
         }
 
+        let playerQueue = orderedPlayers.slice();
+
         // players' turns
-        for (var player of orderedPlayers) {
-            console.log(orderedPlayers)
-            console.log(player)
-            console.log(player.inRound)
+        while (playerQueue.length > 0) {
+            let player = playerQueue.shift();
+ 
             if (player.inRound) {
                 currentBet = this.minBet;
                 // playerAction will be a type array with information about user's action
@@ -470,17 +471,29 @@ class Hand {
                 // will modify game information here below
                 this.checkcallHandler(player);
                 var playerAction = await player.promptMove();
-                console.log(this.pot, this.minBet, 'intitial')
+                console.log(this.pot, this.minBet, 'initial')
                 if (playerAction[0] == 'raise') {
                     
-                    this.pot += playerAction[1] + this.minBet;
-                    this.minBet += playerAction[1];
-                    player.money -= playerAction[1];
+                    this.pot += parseInt(playerAction[1]) + this.minBet;
+                    this.minBet += parseInt(playerAction[1]);
+                    player.money -= parseInt(playerAction[1]);
                     this.updateFrontend(player);
+                    
+                    let index = orderedPlayers.indexOf(player)
+                    let preceding = orderedPlayers.slice(0, index)
+                    let succeeding = orderedPlayers.slice(index + 1)
 
+                    for (let additional of succeeding.concat(preceding)) {
+                        if (additional.inRound) {
+                            if (playerQueue.includes(additional) == false) {
+                                playerQueue.push(additional)
+                            }
+                        }
+                    }
+                       
                 } else if (playerAction[0] == 'checkcall') {
-                    player.money -= playerAction[1];
-                    this.pot += playerAction[1];
+                    player.money -= parseInt(playerAction[1]);
+                    this.pot += parseInt(playerAction[1]);
                     this.updateFrontend(player)
 
                 } else if (playerAction[0] == 'fold') {
@@ -488,10 +501,8 @@ class Hand {
                     player.inRound = false;
                     Frontend.hideCards(player.id)
                 }
+                
                 console.log(this.pot, this.minBet, 'final')
-
-
-
 
             }
         }
