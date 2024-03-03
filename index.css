@@ -22,6 +22,7 @@ body{
     position: relative;
     top: -10%;
     z-index: -1;
+    width: 150px;
 }
 
 .playerimg {
@@ -110,35 +111,44 @@ body{
     top: 2%;
     left: 50%;
     width: auto;
-    height: 20vh;
+    height: 25vh;
     background-color: rgba(0, 128, 0, 0.5);
     border-radius: 10px;
-    display: inline-flex;
-    flex-wrap: wrap;
+    padding-left: 2vw;
+    padding-right: 2vw;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
-#roundInfo span {
-    width: 100%
-}
+
 #potImg {
+    position: relative;
     width: 7vw;
     height: 15vh;
-    margin-top: -2vh;
+    top: -2vh;
 }
 #potAmount {
     /* position: relative;
     top: 10%;
     left: 35%; */
     position: relative;
-    margin-top: 0vh;
+    top: -7vh;
     /* top: 10%; */
     font-size: 5vw;
     color: goldenrod;
 
 }
 #roundInfoParagraph {
+    position: relative;
     color: goldenrod;
     font-size: 5vw;
-    margin-top: -8vh;
+    left: 1vw;
+}
+
+.row_b {
+    position: relative;
+    top: -21vh;
 }
 
 #deckd {
@@ -244,3 +254,28 @@ body{
 .i1 {
     display: inline-block;
 }
+
+.lbbbimg {
+    width: 2vw;
+    display: none;
+}
+
+#handIMG {
+    width: 4vw;
+    display: inline-block;
+    position: relative;
+    top: 1vh;
+    /* display: none; */
+}
+
+.arrow {
+    width: 1vw;
+}
+
+.inRound {
+    color: rgb(57, 255, 57) !important;
+    display: inline-block;
+    position: relative;
+    left: 0.25vw;
+}
+

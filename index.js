@@ -121,7 +121,6 @@ function updateSlider() {
 // }
 
 var userResponse = false;
-var currentBet = 0;
 const lbAmount = 1;
 const bbAmount = 2;
 
@@ -221,10 +220,27 @@ class Frontend{
         content.textContent = text
     }
     static hideCards(playerID) {
-        var card1 = document.getElementById(playerID + 'c1')
+        var card1 = document.getElementById(playerID + 'c1');
         card1.style.visibility = "hidden";
-        var card2 = document.getElementById(playerID + 'c2')
+        var card2 = document.getElementById(playerID + 'c2');
         card2.style.visibility = "hidden";
+    }
+
+    static hideBlinds(playerID) {
+        let sb = document.getElementById(playerID + 'sb');
+        let bb = document.getElementById(playerID + 'bb');
+        sb.style.display = 'none';
+        bb.style.display = 'none';
+    }
+
+    static showSB(playerID) {
+        let sb = document.getElementById(playerID + 'sb');
+        sb.style.display = 'inline';
+    }
+
+    static showBB(playerID) {
+        let bb = document.getElementById(playerID + 'bb');
+        bb.style.display = 'inline';
     }
 
 }
@@ -240,9 +256,10 @@ class Player {
         this.active = true;  
         this.inRound = true;
         this.isTurn = false;   
-        this.bet = 0;
-        Frontend.changeTextContent(this.id + 'p1', this.money)
-        Frontend.changeTextContent(this.id + 'p2', '')
+        this.betThisRound = 0;
+        this.betThisHand = 0;
+        Frontend.changeTextContent(this.id + 'p1', this.money);
+        Frontend.changeTextContent(this.id + 'p2', this.betThisRound);
 
 
     }
@@ -258,7 +275,7 @@ class Player {
         var response = await asyncAwaitUserResponse();
         console.log("response responded to " + response);
         Frontend.changeImage(this.id + 'c1', Utils.translateCard('back'));
-        Frontend.changeImage(this.id + 'c2', Utils.translateCard('back'));
+        // Frontend.changeImage(this.id + 'c2', Utils.translateCard('back'));
 
         // this.isTurn = true;
         // while (this.isTurn == true) {
@@ -408,7 +425,7 @@ class Hand {
         this.card5 = this.dealtCards.board[4];
         this.active = true;
         this.pot = 0;
-        this.minBet = 0;
+        this.call = 0;
         this.start = null;
 
         // cards are dealt/assigned to each player and board
@@ -419,23 +436,31 @@ class Hand {
     }
     async initialize() {
         let start=false;
+        Frontend.showSB(players[this.littleBlind].id);
+        Frontend.showBB(players[(this.littleBlind + 1) % players.length].id);
+
         await this.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers, this.littleBlind, start=true);
         await this.bettingRound([this.card1, this.card2, this.card3, 'back', 'back'], this.activePlayers, this.littleBlind);
         await this.bettingRound([this.card1, this.card2, this.card3, this.card4, 'back'], this.activePlayers, this.littleBlind);
-        await this.bettingRound([this.card1, this.card2, this.card3, this.card4, this.card5], this.activePlayers, this.littleBlind);
+        await this.bettingRound([this.card1, this.card2, this.card3, this.card4, this.card5], this.activePlayers, this.littleBlind, end=true);
+
+        Frontend.hideBlinds(players[this.littleBlind].id);
+        Frontend.hideBlinds(players[(this.littleBlind + 1) % players.length].id);
+
     }
     
-    async bettingRound(cards, players, littleBlindPlayer, start=false){
+    async bettingRound(cards, players, littleBlindPlayer, start=false, end=false){
         // console.log(this.activePlayers);
         // console.log(players);
-        this.minBet = 0;
-        currentBet = 0;
+        this.call = 0;
         let orderedPlayers = [];
         // console.log(players);
         // console.log(littleBlindPlayer, 'lb player')
         for (let j = 0; j < players.length; j++) {
             // changes the small and big blind each round
             // console.log(players[(littleBlindPlayer + j) % players.length])
+            // also sets betThisRound attribute to 0
+            players[j].betThisRound = 0;
             orderedPlayers.push(players[(littleBlindPlayer + j) % players.length])
         }
         console.log(orderedPlayers)
@@ -445,38 +470,52 @@ class Hand {
             Frontend.changeImage('card' + i.toString() + 'Image', Utils.translateCard(cards[i - 1]))
 
         }
-        if (start) {
-            orderedPlayers[0].money -= lbAmount;
-            this.pot += lbAmount;
-            this.updateFrontend(orderedPlayers[0])
-            orderedPlayers[1].money -= bbAmount;
-            this.pot += bbAmount;
-            this.minBet = bbAmount;
-            this.updateFrontend(orderedPlayers[1])
-            orderedPlayers.push(orderedPlayers[0])
-            orderedPlayers.push(orderedPlayers[1])
-            orderedPlayers.splice(0, 2)
-        }
 
         let playerQueue = orderedPlayers.slice();
+
+        if (start) {
+            // automatically simulate little and big blinds
+            let lb = playerQueue.shift();
+            lb.money -= lbAmount;
+            lb.betThisRound += lbAmount;
+            this.pot += lbAmount;
+            this.updateFrontend(lb);
+            playerQueue.push(lb);
+            let bb = playerQueue.shift();
+            bb.money -= bbAmount;
+            bb.betThisRound += bbAmount;
+            this.pot += bbAmount;
+            this.call = bbAmount;
+            this.updateFrontend(bb);
+            playerQueue.push(bb);
+        }
+
 
         // players' turns
         while (playerQueue.length > 0) {
             let player = playerQueue.shift();
+            this.updateFrontend(player);
  
             if (player.inRound) {
-                currentBet = this.minBet;
                 // playerAction will be a type array with information about user's action
                 // playerAction will modify player's information in the Player Class, and
                 // will modify game information here below
                 this.checkcallHandler(player);
                 var playerAction = await player.promptMove();
-                console.log(this.pot, this.minBet, 'initial')
+                console.log(this.pot, this.call, 'initial')
                 if (playerAction[0] == 'raise') {
+                    let raiseAmount = parseInt(playerAction[1]);
+                    this.pot += raiseAmount + this.call - player.betThisRound;
                     
-                    this.pot += parseInt(playerAction[1]) + this.minBet;
-                    this.minBet += parseInt(playerAction[1]);
-                    player.money -= parseInt(playerAction[1]);
+                    console.log('---------------')
+                    console.log(raiseAmount)
+                    console.log(this.call)
+                    console.log(player.betThisRound)
+
+                    player.money -= (raiseAmount + this.call - player.betThisRound);
+                    player.betThisRound = (raiseAmount + this.call);
+                    this.call += raiseAmount;
+
                     this.updateFrontend(player);
                     
                     let index = orderedPlayers.indexOf(player)
@@ -492,27 +531,35 @@ class Hand {
                     }
                        
                 } else if (playerAction[0] == 'checkcall') {
-                    player.money -= parseInt(playerAction[1]);
-                    this.pot += parseInt(playerAction[1]);
-                    this.updateFrontend(player)
+                    player.money -= (this.call - player.betThisRound);
+                    this.pot += (this.call - player.betThisRound);
+                    player.betThisRound += (this.call - player.betThisRound)
+                    this.updateFrontend(player);
 
                 } else if (playerAction[0] == 'fold') {
                     // already taken care of in promptMove
                     player.inRound = false;
                     Frontend.hideCards(player.id)
                 }
-                
-                console.log(this.pot, this.minBet, 'final')
+
+                console.log(this.pot, this.call, 'final')
 
             }
         }
+        this.call = 0;
+        if (this.activePlayers.length == 1) {
+
+        }
+        if (end == 'true') {
+
+        }
     }
     checkcallHandler(activePlayer) {
-        if (this.minBet > 0) {
-            if (activePlayer.money >= this.minBet) {
-            Frontend.changeTextContent('checkcallDisplay', 'Call: ' + this.minBet)
+        if (this.call > 0 & this.call > activePlayer.betThisRound) {
+            if (activePlayer.money >= this.call) {
+            Frontend.changeTextContent('checkcallDisplay', 'Call')
             } else {
-            Frontend.changeTextContent('checkcallDisplay', 'Call: ' + activePlayer.money)
+            Frontend.changeTextContent('checkcallDisplay', 'Partial Call: ' + activePlayer.money)
             }
         } else {
             Frontend.changeTextContent('checkcallDisplay', 'Check')
@@ -520,8 +567,13 @@ class Hand {
     }
     updateFrontend(player) {
         Frontend.changeTextContent('potAmount', this.pot)
-        Frontend.changeTextContent('roundInfoParagraph', 'Call: ' + this.minBet)
+        Frontend.changeTextContent('roundInfoParagraph', this.call)
         Frontend.changeTextContent(player.id + 'p1', player.money)
+        Frontend.changeTextContent(player.id + 'p2', player.betThisRound);
+        
+
+    }
+    promptEndSreen () {
 
     }
 }
@@ -583,7 +635,7 @@ class Actions {
 
     static checkcallAction() {
         console.log("check call")
-        userResponse = ['checkcall', currentBet]
+        userResponse = ['checkcall', '']
         setUserAction('checkcall')
         
     }
