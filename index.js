@@ -275,7 +275,7 @@ class Player {
         var response = await asyncAwaitUserResponse();
         console.log("response responded to " + response);
         Frontend.changeImage(this.id + 'c1', Utils.translateCard('back'));
-        // Frontend.changeImage(this.id + 'c2', Utils.translateCard('back'));
+        Frontend.changeImage(this.id + 'c2', Utils.translateCard('back'));
 
         // this.isTurn = true;
         // while (this.isTurn == true) {
@@ -435,7 +435,11 @@ class Hand {
         // }
     }
     async initialize() {
-        let start=false;
+        let start;
+        let end;
+        for (let player of players) {
+            player.betThisHand = 0;
+        }
         Frontend.showSB(players[this.littleBlind].id);
         Frontend.showBB(players[(this.littleBlind + 1) % players.length].id);
 
@@ -462,6 +466,7 @@ class Hand {
             // also sets betThisRound attribute to 0
             players[j].betThisRound = 0;
             orderedPlayers.push(players[(littleBlindPlayer + j) % players.length])
+            this.updateFrontend(players[j % players.length])
         }
         console.log(orderedPlayers)
         // sets the board
@@ -515,6 +520,7 @@ class Hand {
                     player.money -= (raiseAmount + this.call - player.betThisRound);
                     player.betThisRound = (raiseAmount + this.call);
                     this.call += raiseAmount;
+                    player.betThisHand += player.betThisRound;
 
                     this.updateFrontend(player);
                     
@@ -533,7 +539,8 @@ class Hand {
                 } else if (playerAction[0] == 'checkcall') {
                     player.money -= (this.call - player.betThisRound);
                     this.pot += (this.call - player.betThisRound);
-                    player.betThisRound += (this.call - player.betThisRound)
+                    player.betThisRound += (this.call - player.betThisRound);
+                    player.betThisHand += player.betThisRound;
                     this.updateFrontend(player);
 
                 } else if (playerAction[0] == 'fold') {
@@ -547,13 +554,50 @@ class Hand {
             }
         }
         this.call = 0;
-        if (this.activePlayers.length == 1) {
-
+        let playersInRound = this.activePlayers.filter(p => p.inRound == true);
+        console.log('-----------');
+        console.log(playersInRound.length)
+        let rankedPlayers = [];
+        if (playersInRound.length == 1) {
+            // use nested array instead of object to handle duplicate betThisRound entries
+            let tempArray = [];
+            let bets = [];
+            let k = 0;
+            for (let p of playersInRound) {
+                if (p.inRound) {
+                    // winner of round
+                    rankedPlayers.unshift(p);
+                    playersInRound.splice(k);
+                    
+                } else {
+                    tempArray.push(p.betThisHand);
+                }
+                k += 1;
+            }
+            let sorted = Utils.reverseMergeSort(tempArray);
+            console.log(rankedPlayers);
+            for (let bet of sorted) {
+                let i = 0;
+                for (let pRemaining of playersInRound) {
+                    if (bet == pRemaining.betThisHand) {
+                        rankedPlayers.push(pRemaining);
+                        playersInRound.splice(i);
+                    i += 1;
+                    }
+                }
+                }
+            }
+            console.log(rankedPlayers);
+            for (let p of rankedPlayers) {
+                console.log(p, p.betThisHand)
+            }
+            console.log('checkpoint done')
+            
         }
-        if (end == 'true') {
+        // if (end == 'true') {
 
-        }
-    }
+        // }
+    // }
     checkcallHandler(activePlayer) {
         if (this.call > 0 & this.call > activePlayer.betThisRound) {
             if (activePlayer.money >= this.call) {
@@ -669,6 +713,32 @@ class Utils {
         if (card == 'back') {
             return '/images/cards/back.png'
         } else return cardDict[card.join("")]
+    }
+    static reverseMerge(left, right) {
+        let sorted = [];
+
+        while (left.length && right.length) {
+            if (left[0] > right[0]) {
+                sorted.push(left.shift())
+            } else {
+                sorted.push(right.shift())
+            }
+        }
+        return [...sorted, ...left, ...right]
+    }
+    static reverseMergeSort(arr) {
+        // Base Case
+        if (arr.length <= 1) {
+            return arr
+        }
+        // to split array in half
+        let mid = Math.floor(arr.length / 2)
+
+        // Recursive Case
+        let left = mergeSort(arr.slice(0, mid))
+        let right = mergeSort(arr.slice(mid))
+
+        return this.reverseMerge(left, right)
     }
 
 
