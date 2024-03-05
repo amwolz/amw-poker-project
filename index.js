@@ -444,9 +444,15 @@ class Hand {
         Frontend.showBB(players[(this.littleBlind + 1) % players.length].id);
 
         await this.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers, this.littleBlind, start=true);
-        await this.bettingRound([this.card1, this.card2, this.card3, 'back', 'back'], this.activePlayers, this.littleBlind);
-        await this.bettingRound([this.card1, this.card2, this.card3, this.card4, 'back'], this.activePlayers, this.littleBlind);
-        await this.bettingRound([this.card1, this.card2, this.card3, this.card4, this.card5], this.activePlayers, this.littleBlind, end=true);
+        if (this.active) {
+            await this.bettingRound([this.card1, this.card2, this.card3, 'back', 'back'], this.activePlayers, this.littleBlind);
+            if (this.active) {
+                await this.bettingRound([this.card1, this.card2, this.card3, this.card4, 'back'], this.activePlayers, this.littleBlind);
+                if (this.active) {
+                    await this.bettingRound([this.card1, this.card2, this.card3, this.card4, this.card5], this.activePlayers, this.littleBlind, end=true);
+                }
+            }
+        }
 
         Frontend.hideBlinds(players[this.littleBlind].id);
         Frontend.hideBlinds(players[(this.littleBlind + 1) % players.length].id);
@@ -560,6 +566,7 @@ class Hand {
         let rankedPlayers = [];
         if (playersInRound.length == 1) {
             // use nested array instead of object to handle duplicate betThisRound entries
+            this.active = false;
             let tempArray = [];
             let bets = [];
             let k = 0;
@@ -589,11 +596,14 @@ class Hand {
             }
             console.log(rankedPlayers);
             for (let p of rankedPlayers) {
-                console.log(p, p.betThisHand)
+                console.log(p, p.betThisHand);
             }
+            
             console.log('checkpoint done')
             
         }
+
+
         // if (end == 'true') {
 
         // }
@@ -617,8 +627,8 @@ class Hand {
         
 
     }
-    promptEndSreen () {
-
+    promptEndSreen (playerArray) {
+        
     }
 }
 
