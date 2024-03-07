@@ -599,7 +599,7 @@ class Hand {
                 console.log(p, p.betThisHand);
             }
             
-            console.log('checkpoint done')
+            console.log('checkpoint done one player left')
             
         }
 
@@ -628,7 +628,7 @@ class Hand {
 
     }
     promptEndSreen (playerArray) {
-        
+
     }
 }
 
