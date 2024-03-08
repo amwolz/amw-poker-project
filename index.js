@@ -646,7 +646,7 @@ class Orbit {
 
 }
 
-// want to init UI, then automatically(?) prompt Hand to handle a bettinground
+// want to initialize UI, then automatically(?) prompt Hand to handle a bettinground
 // within Hand, we want to deal cards to active players first, then start the first
 // bettinground with input 5 cards facedown. Then iterate through bettingroudn with flop, turn
 // river. Then if players are stil "in" round show cards and calculate winner 
