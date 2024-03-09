@@ -449,7 +449,7 @@ class Hand {
             if (this.active) {
                 await this.bettingRound([this.card1, this.card2, this.card3, this.card4, 'back'], this.activePlayers, this.littleBlind);
                 if (this.active) {
-                    await this.bettingRound([this.card1, this.card2, this.card3, this.card4, this.card5], this.activePlayers, this.littleBlind, end=true);
+                    await this.bettingRound([this.card1, this.card2, this.card3, this.card4, this.card5], this.activePlayers, this.littleBlind, start=false, end=true);
                 }
             }
         }
@@ -562,7 +562,7 @@ class Hand {
         this.call = 0;
         let playersInRound = this.activePlayers.filter(p => p.inRound == true);
         console.log('-----------');
-        console.log(playersInRound.length)
+        console.log(playersInRound.length);
         let rankedPlayers = [];
         if (playersInRound.length == 1) {
             // use nested array instead of object to handle duplicate betThisRound entries
