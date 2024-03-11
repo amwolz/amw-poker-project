@@ -610,8 +610,9 @@ class Hand {
             }
             
             
-
+            
             console.log('checkpoint done one player left')
+            console.log(rankedPlayers)
 
             this.endround(rankedPlayers);
         } else if (end == true) {
@@ -625,7 +626,16 @@ class Hand {
     }
 
     endround(playerArr) {
-        Frontend.changeImage("ranked1", )
+        console.log(playerArr)
+        Frontend.changeImage("ranked1", playerArr[0].imgURL)
+        Frontend.changeImage("ranked2", playerArr[1].imgURL)
+        Frontend.changeImage("ranked3", playerArr[2].imgURL)
+        Frontend.changeImage("ranked4", playerArr[3].imgURL)
+        Frontend.changeImage("ranked5", playerArr[4].imgURL)
+        Frontend.showDiv('endDisplay')
+
+
+
     }
 
     checkcallHandler(activePlayer) {
