@@ -8,6 +8,11 @@ var wim1 = document.getElementById("wim1");
 var wim2 = document.getElementById("wim2");
 var wim3 = document.getElementById("wim3");
 var wim4 = document.getElementById("wim4");
+let rankedFirst;
+let rankedSecond;
+let rankedThird;
+let rankedFourth;
+let rankedFifth;
 var cardDict = {
     "C2" : "images/cards/clubs_2.png",
     "C3": "images/cards/clubs_3.png",
@@ -99,6 +104,10 @@ function updateSlider() {
     else {
         document.getElementById('myRange').value = textboxValue;
     }
+}
+
+function closePopup() {
+    document.getElementById('popup').style.display = 'none';
 }
 
 // var stopGate = false;
@@ -246,7 +255,7 @@ class Frontend{
 }
 
 class Player {
-    constructor(robot, name, id) {
+    constructor(robot, name, id, imgURL) {
         this.isrobot = robot;
         this.name = name;
         this.id = id;
@@ -258,6 +267,7 @@ class Player {
         this.isTurn = false;   
         this.betThisRound = 0;
         this.betThisHand = 0;
+        this.imgURL = imgURL;
         Frontend.changeTextContent(this.id + 'p1', this.money);
         Frontend.changeTextContent(this.id + 'p2', this.betThisRound);
 
@@ -592,22 +602,32 @@ class Hand {
                     i += 1;
                     }
                 }
-                }
             }
+        
             console.log(rankedPlayers);
             for (let p of rankedPlayers) {
                 console.log(p, p.betThisHand);
             }
             
-            console.log('checkpoint done one player left')
             
-        }
 
+            console.log('checkpoint done one player left')
 
-        // if (end == 'true') {
+            this.endround(rankedPlayers);
+        } else if (end == true) {
+            // rankedPlayers = this.evaluateHand(playersInRound)
+            this.endround(rankedPlayers);
+         }
+    }
+        
+    evaluateHand(players) {
+        console.log('');
+    }
 
-        // }
-    // }
+    endround(playerArr) {
+        Frontend.changeImage("ranked1", )
+    }
+
     checkcallHandler(activePlayer) {
         if (this.call > 0 & this.call > activePlayer.betThisRound) {
             if (activePlayer.money >= this.call) {
@@ -658,11 +678,11 @@ function main() {
     // Frontend.hideDiv("card5")
     // Frontend.hideDiv("cardContainer")
     // Frontend.changeImage("card1Image", "images/cards/clubs_2.png")
-    p1 = new Player(false, username, 'p1');
-    p2 = new Player(false, "Stephen", 'p2');
-    p3 = new Player(false, "Alyssa", 'p3');
-    p4 = new Player(false, "Eric", 'p4');
-    p5 = new Player(false, "Alex", 'p5');
+    p1 = new Player(false, username, 'p1', charSelect);
+    p2 = new Player(false, "Stephen", 'p2', 'images/player2.png');
+    p3 = new Player(false, "Alyssa", 'p3', 'images/player3.png');
+    p4 = new Player(false, "Eric", 'p4', 'images/player4.png');
+    p5 = new Player(false, "Alex", 'p5', 'images/player5.png');
 
 
     players = [p1, p3, p2, p5, p4];
