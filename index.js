@@ -578,7 +578,6 @@ class Hand {
             // use nested array instead of object to handle duplicate betThisRound entries
             this.active = false;
             let tempArray = [];
-            let bets = [];
             let k = 0;
             for (let p of playersInRound) {
                 if (p.inRound) {
