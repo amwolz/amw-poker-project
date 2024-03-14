@@ -67,7 +67,123 @@ var cardDict = {
     "SK" : "images/cards/spades_king.png",
     "SA" : "images/cards/spades_ace.png",
 }
-const resultDict = {};
+const resultDict = {
+    0.95 : "High Card: Ace!!!!!",
+    0.94 : "High Card: King!!!!!",
+    0.93 : "High Card: Queen!!!!!",
+    0.92 : "High Card: Jack!!!!!",
+    0.91 : "High Card: Ten!!!!!",
+    0.90 : "High Card: Nine!!!!!",
+    0.8 : "High Card: Eight!!!!!",
+    0.7 : "High Card: Seven!!!!!",
+    1.95 : "Pair: Ace!!!!!",
+    1.94 : "Pair: King!!!!!",
+    1.93 : "Pair: Queen!!!!!",
+    1.92 : "Pair: Jack!!!!!",
+    1.91 : "Pair: Ten!!!!!",
+    1.90 : "Pair: Nine!!!!!",
+    1.8 : "Pair: Eight!!!!!",
+    1.7 : "Pair: Seven!!!!!",
+    1.6 : "Pair: Six!!!!!",
+    1.5 : "Pair: Five!!!!!",
+    1.4 : "Pair: Four!!!!!",
+    1.3 : "Pair: Three!!!!!",
+    1.2 : "Pair: Two!!!!!",
+    2.95 : "Two Pair: Ace!!!!!",
+    2.94 : "Two Pair: King!!!!!",
+    2.93 : "Two Pair: Queen!!!!!",
+    2.92 : "Two Pair: Jack!!!!!",
+    2.91 : "Two Pair: Ten!!!!!",
+    2.90 : "Two Pair: Nine!!!!!",
+    2.8 : "Two Pair: Eight!!!!!",
+    2.7 : "Two Pair: Seven!!!!!",
+    2.6 : "Two Pair: Six!!!!!",
+    2.5 : "Two Pair: Five!!!!!",
+    2.4 : "Two Pair: Four!!!!!",
+    2.3 : "Two Pair: Three!!!!!",
+    3.95 : "Three Of A Kind: Ace!!!!!",
+    3.94 : "Three Of A Kind: King!!!!!",
+    3.93 : "Three Of A Kind: Queen!!!!!",
+    3.92 : "Three Of A Kind: Jack!!!!!",
+    3.91 : "Three Of A Kind: Ten!!!!!",
+    3.90 : "Three Of A Kind: Nine!!!!!",
+    3.8 : "Three Of A Kind: Eight!!!!!",
+    3.7 : "Three Of A Kind: Seven!!!!!",
+    3.6 : "Three Of A Kind: Six!!!!!",
+    3.5 : "Three Of A Kind: Five!!!!!",
+    3.4 : "Three Of A Kind: Four!!!!!",
+    3.3 : "Three Of A Kind: Three!!!!!",
+    3.2 : "Three Of A Kind: Two!!!!!",
+    4.95 : "Straight: Ace!!!!!",
+    4.94 : "Straight: King!!!!!",
+    4.93 : "Straight: Queen!!!!!",
+    4.92 : "Straight: Jack!!!!!",
+    4.91 : "Straight: Ten!!!!!",
+    4.90 : "Straight: Nine!!!!!",
+    4.8 : "Straight: Eight!!!!!",
+    4.7 : "Straight: Seven!!!!!",
+    4.6 : "Straight: Six!!!!!",
+    4.5 : "Straight: Five!!!!!",
+    5.95 : "Flush: Ace!!!!!",
+    5.94 : "Flush: King!!!!!",
+    5.93 : "Flush: Queen!!!!!",
+    5.92 : "Flush: Jack!!!!!",
+    5.91 : "Flush: Ten!!!!!",
+    5.90 : "Flush: Nine!!!!!",
+    5.8 : "Flush: Eight!!!!!",
+    5.7 : "Flush: Seven!!!!!",
+    5.6 : "Flush: Six!!!!!",
+    5.5 : "Straight Flush: Five!!!!!",
+    6.95 : "Full House: Ace!!!!!",
+    6.94 : "Full House: King!!!!!",
+    6.93 : "Full House: Queen!!!!!",
+    6.92 : "Full House: Jack!!!!!",
+    6.91 : "Full House: Ten!!!!!",
+    6.90 : "Full House: Nine!!!!!",
+    6.8 : "Full House: Eight!!!!!",
+    6.7 : "Full House: Seven!!!!!",
+    6.6 : "Full House: Six!!!!!",
+    6.5 : "Full House: Five!!!!!",
+    6.4 : "Full House: Four!!!!!",
+    6.3 : "Full House: Three!!!!!",
+    7.95 : "Four Of A Kind: Ace!!!!!",
+    7.94 : "Four Of A Kind: King!!!!!",
+    7.93 : "Four Of A Kind: Queen!!!!!",
+    7.92 : "Four Of A Kind: Jack!!!!!",
+    7.91 : "Four Of A Kind: Ten!!!!!",
+    7.90 : "Four Of A Kind: Nine!!!!!",
+    7.8 : "Four Of A Kind: Eight!!!!!",
+    7.7 : "Four Of A Kind: Seven!!!!!",
+    7.6 : "Four Of A Kind: Six!!!!!",
+    7.5 : "Four Of A Kind: Five!!!!!",
+    7.4 : "Four Of A Kind: Four!!!!!",
+    7.3 : "Four Of A Kind: Three!!!!!",
+    7.2 : "Four Of A Kind: Two!!!!!",
+    8.95 : "Straight Flush: Ace!!!!!",
+    8.94 : "Straight Flush: King!!!!!",
+    8.93 : "Straight Flush: Queen!!!!!",
+    8.92 : "Straihgt Flush: Jack!!!!!",
+    8.91 : "Straight Flush: Ten!!!!!",
+    8.90 : "Straight Flush: Nine!!!!!",
+    8.8 : "Straight Flush: Eight!!!!!",
+    8.7 : "Straihgt Flush: Seven!!!!!",
+    8.6 : "Straight Flush: Six!!!!!",
+    8.5 : "Straight Flush: Five!!!!!",
+    9.0 : "Royal Flush!!!!!"
+};
+
+const resultMessages = {
+    'RF' : "Royal Flush!!!!!",
+    'SF' : "Straight Flush!!!!!",
+    '4K' : 'Four Of A Kind!!!!!',
+    'FH' : 'Full House!!!!!',
+    'F' : 'Flush!!!!!',
+    'S' : 'Straight!!!!!',
+    '3K' : "Three Of A Kind!!!!!",
+    '2P' : "Two Pair!!!!!",
+    'P' : "Pair!!!!!",
+    'HC' : "High Card!!!!!"
+}
 
 function welcomeClick(img) {
     var div = document.getElementById(img);
@@ -428,7 +544,7 @@ class Hand {
     constructor(littleBlind=0) {
         this.littleBlind = littleBlind
         this.activePlayers = players.filter(player => player.active === true);
-        console.log(this.activePlayers)
+        console.log(this.activePlayers + ' activePlayers')
         this.dealtCards = new DealCards(this.activePlayers)
         this.card1 = this.dealtCards.board[0];
         this.card2 = this.dealtCards.board[1];
@@ -610,25 +726,85 @@ class Hand {
     }
         
     evaluateHand(players) {
+
+        let baskets = {
+            'RF' : [],
+            'SF' : [],
+            '4K' : [],
+            'FH' : [],
+            'F' : [],
+            'S' : [],
+            '3K' : [],
+            '2P' : [],
+            'P' : [],
+            'HC' : []
+        };
         for (let player of players) {
-            let cards = [this.card1, this.card2, this.card3, this.card4, this.card5, player.card1, player.card2];
-            // convert cards into arrays to handle more easily
-            for (let card of cards) {
+            let cardsInitial = [this.card1, this.card2, this.card3, this.card4, this.card5, player.card1, player.card2];
+            let cards = [];
+            // convert cards into arrays for better handling
+            for (let card of cardsInitial) {
                 if (card[1] == 'J') {
-                    card = [card[0], 11];
+                    cards.push([card[0], 11]);
                 } else if (card[1] == 'Q') {
-                    card = [card[0], 12];
+                    cards.push([card[0], 12]);
                 } else if (card[1] == 'K') {
-                    card = [card[0], 13];
+                    cards.push([card[0], 13]);
                 } else if (card[1] == 'A') {
-                    card = [card[0], 14];
+                    cards.push([card[0], 14]);
                 } else {
-                    card = [card[0], parseInt(card.slice(0))];
+                    cards.push([card[0], parseInt(card.slice(1))]);
                 } 
             }
 
             // sort cards in descending order of rank
             cards.sort((a, b) => b[1] - a[1]);
+
+            cards.forEach(card => console.log(card[0], card[1]))
+
+            let rankCounts = {};
+            let suitCounts = {};
+            cards.forEach(card => {
+                rankCounts[card.slice(1)] = (rankCounts[card.slice(1)] || 0) + 1;
+                suitCounts[card[0]] = (suitCounts[card[0]] || 0) + 1;
+            });
+
+            console.log(rankCounts);
+            console.log(suitCounts);
+
+
+            // [bool(isStraightFlush), [['D', 13], ['D', 10], ..., bool(isFlush)]
+            const straightFlush = this.isStraightFlush(cards, suitCounts);
+            const isFour = this.isFour(cards, rankCounts);
+            const isThreeTwoOneDict = this.isThreeTwoOne(cards, rankCounts);
+
+            console.log('straightFlush ' + straightFlush);
+            console.log('isFour ' + isFour);
+            console.log('isThreeTwoOneDict ' + isThreeTwoOneDict);
+            for (let key in isThreeTwoOneDict) {
+                console.log(key, isThreeTwoOneDict[key]);
+            }
+            console.log('--------------')
+            console.log(straightFlush[1][0], straightFlush[1][1])
+
+            console.log('rankCounts' + rankCounts);
+            if (straightFlush[0] == true && straightFlush[1][0][1] == 14) {
+                baskets['RF'].push(player);
+                player.result = 'RF';
+
+            } else if (straightFlush[0] == true) {
+                baskets['SF'].push([player, straightFlush[1][0][1]])
+                player.result = 'SF'
+            } else if (isFour[0] == true) {
+                baskets['4K'].push([player, isFour[1]]);
+                player.result = '4K'
+            }
+
+            // if (this.isStraight(cards)[0] == true && this.isStraight(cards)[1] == 14) {
+
+            // }
+
+
 
 
 
@@ -636,49 +812,140 @@ class Hand {
         console.log('');
     }
 
-    isStraight(cards) {
-        // checks if there is a straight out of cards ordered by descending numerical value
-        let i = 0;
-        let straightCount = 0;
-        // iterates through each card
-        for (let card of cards) {
-            if (card[1] == 14) {
-                // handle low Ace straight
-                cards.append([card[0], 0]);
+    isStraightFlush(cards, suitCounts) {
+        // returns array [bool(are these cards a straightFlush), suited cards if a flush, bool(are these cards a flush?)]
+        // so handles checking if cards are a flush 
+        // suited cards will be of type ['D', 13]
+        let cardscopy = cards.slice();
+        let suited = [];
+        for (let key in suitCounts) {
+            if (suitCounts[key] >= 5) {
+                for (let c of cardscopy) {
+                    if (c[0] == key) {
+                        // suited will be all cards of same suit (atleast 5)
+                        suited.push(c);
+                    }
+                }
+            } 
+        }
+        let suited_copy = suited.slice();
+        // suited is still in descending order by card rank
+        if (suited.length == 0) {
+            // not a flush
+            return [false, '', false];
+        } else {
+            if (this.isStraight(suited)) {
+                // straightFlush
+                return [true, suited_copy, true]
+            } else {
+                // straight but not a flush
+                return [false, suited_copy, true]
             }
-            let j = i;
-            // checks if current card is the start of a straight
-            while (j < cards.length) {
-                console.log(cards[j][1])
-                console.log(straightCount)
-                console.log('')
-                if (cards[j][1] - cards[j + 1][1] == 1) {
+        }
+    }
+
+    // what if there is a straight flush ranked lower than a mixed flush??
+    isStraight(cards) {       
+        let cardscopy= cards.slice()
+        // in case of a low ace straight
+        if (cardscopy[0][1] == 14) {
+            cardscopy.push([cardscopy[0][0], 1]);
+        }
+        // for (let c of cardscopy) {
+        //     console.log(c[1]);
+        // }
+
+        // checks if there is a straight out of cards ordered by descending rank value
+        for (let i = 0; i < cardscopy.length - 4; i++) {
+            let straightCount = 0;
+            for (let j = 0; j < cards.slice(i).length; j++) {
+                if (cardscopy[i + j][1] - cardscopy[i + j + 1][1] == 1) {
                     straightCount++;
                     if (straightCount == 4) {
                         // returns boolean and value of highest card in straight for tiebreaking
-                        return [true, cards[i][1]]
-                    }
-                } else if (cards[j][1] - cards[j + 1][1] == 0) {
-                    // if pair
+                        return [true, cardscopy[i][1]];
+                    } 
+                } else if (cardscopy[i + j][1] - cardscopy[i + j + 1][1] == 0) {
+                        // if pair
                 } else {
-                    console.log('break')
-                    break
+                        break
+                    }
                 }
-                j++;
-            }
-            straightCount = 0;
-            
-            i++;
         }
+        
         return [false, ''];
     }
 
+    isFour(cards, rankCounts) {
+        for (let key in rankCounts) {
+            if (rankCounts[key] == 4) {
+                // cannot be two 4 kinds of same rank so don't have to worry about fifth card tiebreaker
+                return [true, key]
+            }
+        }
+        return [false, '']
+    }
+
+    isThreeTwoOne(cards, rankCounts) {
+        let cardscopy = cards.slice();
+        let trips = [];
+        let dubs = [];
+        let fh = false;
+        let threeKind = false;
+        let twopair = false;
+        let pair = false;
+        let highcard = false;
+        // only because cards are entered in descdending order we don't have to worry about second 3 of kind
+        for (let key in rankCounts) {
+            if (rankCounts[key] == 3) {
+                trips.push(key);
+                // removes trips from cards
+                cardscopy = cardscopy.filter(card => card[1] !== key);
+            } else if (rankCounts[key] == 2) {
+                // dubs will also be in descending order
+                dubs.push(key);
+                // removes dubs from cards
+                cardscopy = cardscopy.filter(card => card[1] !== key);
+            }
+        }
+        if (trips.length > 0) {
+            if (dubs.length > 0) {
+                // full house
+                fh = [trips[0], dubs[0]];
+            } else {
+                // 3 of a kind
+                // include highest two cards for tiebreaking
+                threeKind = [trips[0], cards[0], cards[1]];
+            }
+        } else if (dubs.length > 1) {
+            // two pair
+            // again, dubs will be descending rank so don't have to worry about potential third pair
+            twopair = [dubs[0], dubs[1], cards[0]];     
+        } else if (dubs.length == 1) {
+            // single pair
+            pair = [dubs[0], cards[0], cards[1], cards[2]]
+        } else {
+            // high card
+            highcard = cards.slice(0, 5);
+        }
+        return {
+            'FH' : fh,
+            '3K' : threeKind,
+            '2P' : twopair,
+            'P' : pair,
+            'HC' : highcard
+        }
+    }
+   
+
     endround(playerArr) {
         console.log(playerArr)
-        
-        for (let i = 0; i < playerArr.length; i++) {
+        for (let j = 0; j < 5; j++) {
             // display board
             Frontend.changeImage('ec' + (i + 1).toString(), Utils.translateCard(this.dealtCards.board[i]));
+        }
+        
+        for (let i = 0; i < playerArr.length; i++) {
             // update player images
             Frontend.changeImage("ranked" + (i + 1).toString(), playerArr[i].imgURL)
             // display player cards
@@ -691,7 +958,7 @@ class Hand {
 
         }
 
-        Frontend.showDiv('endDisplay')
+        Frontend.showDiv('endDisplay');
 
     }
 
@@ -757,15 +1024,7 @@ function main() {
 
     players = [p1, p3, p2, p5, p4];
 
-
-    let cards = [['D', 12], ['C', 10], ['H', 10], ['S', 9], ['S', 8], ['D', 7], ['D', 6]];
-    let h = new Hand();
-    console.log(cards)
-    console.log(h.isStraight(cards));
-
     var inTurn = false;
-
-
 
     let orbit = new Orbit;
     orbit.initialize();
@@ -852,6 +1111,87 @@ class Utils {
 
 }
 
+class Test {
+    constructor() {
+
+        this.testStraight();
+    }
+    static testStraight(testCards){
+        let cards = [['D', 12], ['C', 10], ['H', 10], ['S', 9], ['S', 8], ['D', 7], ['D', 6]];
+        let cards1 = [['D', 14], ['C', 5], ['H', 4], ['S', 4], ['S', 3], ['D', 2], ['D', 2]];
+        let cards2 = [['D', 8], ['H', 7], ['D', 7], ['S', 7], ['D', 6], ['S', 5], ['C', 4]];
+    
+        let h = new Hand();
+        console.log(cards);
+        console.log(h.isStraight(cards));
+        console.log(h.isStraight(cards1));
+        console.log(h.isStraight(cards2));
+        console.log(h.isStraight(testCards));
+    }
+    static testEvalCards(hc1, hc2, hc3, hc4, hc5, pc1, pc2){
+        let h = new Hand();
+        let p = p2;
+        h.card1 = hc1;
+        h.card2 = hc2;
+        h.card3 = hc3;
+        h.card4 = hc4;
+        h.card5 = hc5;
+        p.card1 = pc1;
+        p.card2 = pc2;
+        h.evaluateHand([p]);
+    }
+    static testStraightFlush(hc1, hc2, hc3, hc4, hc5, pc1, pc2) {
+        let h = new Hand();
+        let p = p3;
+        h.card1 = hc1;
+        h.card2 = hc2;
+        h.card3 = hc3;
+        h.card4 = hc4;
+        h.card5 = hc5;
+        p.card1 = pc1;
+        p.card2 = pc2;
+        h.evaluateHand([p]);
+    }
+    static testis321(hc1, hc2, hc3, hc4, hc5, pc1, pc2) {
+        let h = new Hand();
+        let p = p4;
+        h.card1 = hc1;
+        h.card2 = hc2;
+        h.card3 = hc3;
+        h.card4 = hc4;
+        h.card5 = hc5;
+        p.card1 = pc1;
+        p.card2 = pc2;
+        h.evaluateHand([p]);
+    }
+}
+
+function test() {
+    p1 = new Player(false, username, 'p1', charSelect);
+    p2 = new Player(false, "Stephen", 'p2', 'images/player2.png');
+    p3 = new Player(false, "Alyssa", 'p3', 'images/player3.png');
+    p4 = new Player(false, "Eric", 'p4', 'images/player4.png');
+    p5 = new Player(false, "Alex", 'p5', 'images/player5.png');
+
+    players = [p1, p3, p2, p5, p4];
+    // let t = new Test;
+    // Test.testEvalCards('DA', 'DK', 'CA', 'C2', 'S2', 'S5', 'H5')
+    // Test.testStraightFlush('DA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10')
+    // // above is a straightflush so returns [true, array, true]
+    // Test.testStraightFlush('SA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10')
+    // // above is a straight but not a flush, so returns [false, '', false]
+    // Test.testStraight([['S', 14], ['D', 13], ['D', 12], ['D', 11], ['D', 10], ['C', 4], ['S', 3]]);
+    // // above is he same set of cards, but is a straight so the isStraight function returns [true, 14]
 
 
-main();
+    // Test.testis321('DA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10');
+    Test.testis321('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D10');
+    Test.testis321('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D3');
+
+
+
+
+    
+}
+test();
+// main();
