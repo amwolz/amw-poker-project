@@ -106,8 +106,8 @@ function updateSlider() {
     }
 }
 
-function closePopup() {
-    document.getElementById('popup').style.display = 'none';
+function closeEndContent() {
+    document.getElementById('endDisplay').style.display = 'none';
 }
 
 // var stopGate = false;
@@ -488,7 +488,7 @@ class Hand {
         // sets the board
         for (let i = 1; i <= 5; i++) {
             // console.log(cards[i-1])
-            Frontend.changeImage('card' + i.toString() + 'Image', Utils.translateCard(cards[i - 1]))
+            Frontend.changeImage('card' + i.toString() + 'Image', Utils.translateCard(cards[i - 1]));
 
         }
 
@@ -575,43 +575,25 @@ class Hand {
         console.log(playersInRound.length);
         let rankedPlayers = [];
         if (playersInRound.length == 1) {
-            // use nested array instead of object to handle duplicate betThisRound entries
-            this.active = false;
-            let tempArray = [];
-            let k = 0;
-            for (let p of playersInRound) {
-                if (p.inRound) {
-                    // winner of round
-                    rankedPlayers.unshift(p);
-                    playersInRound.splice(k);
-                    
-                } else {
-                    tempArray.push(p.betThisHand);
-                }
-                k += 1;
-            }
-            let sorted = Utils.reverseMergeSort(tempArray);
-            console.log(rankedPlayers);
-            for (let bet of sorted) {
-                let i = 0;
-                for (let pRemaining of playersInRound) {
-                    if (bet == pRemaining.betThisHand) {
-                        rankedPlayers.push(pRemaining);
-                        playersInRound.splice(i);
-                    i += 1;
-                    }
+            // shallow copy of active players
+            let apCopy = [...this.activePlayers];
+            // winner of round
+            rankedPlayers.push(playersInRound[0]);
+            // sort by descending betThisHand value
+            apCopy.sort((a, b) => b.betThisHand - a.betThisHand);
+            
+            // incase second to last player illogically folds instead of checks
+            for (let p of apCopy) {
+                if (!rankedPlayers.includes(p)) {
+                    rankedPlayers.push(p);
                 }
             }
-        
-            console.log(rankedPlayers);
-            for (let p of rankedPlayers) {
-                console.log(p, p.betThisHand);
-            }
-            
-            
-            
-            console.log('checkpoint done one player left')
-            console.log(rankedPlayers)
+                     
+            // for (let p of rankedPlayers) {
+            //     console.log(p.name, p.betThisHand)
+            // }
+            // console.log('checkpoint done one player left')
+            // console.log(rankedPlayers)
 
             this.endround(rankedPlayers);
         } else if (end == true) {
@@ -626,14 +608,13 @@ class Hand {
 
     endround(playerArr) {
         console.log(playerArr)
-        Frontend.changeImage("ranked1", playerArr[0].imgURL)
-        Frontend.changeImage("ranked2", playerArr[1].imgURL)
-        Frontend.changeImage("ranked3", playerArr[2].imgURL)
-        Frontend.changeImage("ranked4", playerArr[3].imgURL)
-        Frontend.changeImage("ranked5", playerArr[4].imgURL)
+        
+        for (let i = 0; i < playerArr.length; i++) {
+            Frontend.changeImage("ranked" + (i + 1).toString(), playerArr[i].imgURL)
+            Frontend.changeImage('ec' + (i + 1).toString(), Utils.translateCard(this.dealtCards.board[i]));
+        }
+
         Frontend.showDiv('endDisplay')
-
-
 
     }
 
@@ -654,9 +635,6 @@ class Hand {
         Frontend.changeTextContent(player.id + 'p1', player.money)
         Frontend.changeTextContent(player.id + 'p2', player.betThisRound);
         
-
-    }
-    promptEndSreen (playerArray) {
 
     }
 }
@@ -774,8 +752,8 @@ class Utils {
         let mid = Math.floor(arr.length / 2)
 
         // Recursive Case
-        let left = mergeSort(arr.slice(0, mid))
-        let right = mergeSort(arr.slice(mid))
+        let left = this.reverseMergeSort(arr.slice(0, mid))
+        let right = this.reverseMergeSort(arr.slice(mid))
 
         return this.reverseMerge(left, right)
     }

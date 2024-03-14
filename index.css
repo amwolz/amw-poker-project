@@ -291,12 +291,13 @@ body{
 }
 
 .endDisplay-content {
-    background-color: white;
+    background-color: rgba(0, 0, 0, 0.5);
     width: 80%; /* Adjust width as needed */
-    height: 80%; /* Adjust height as needed */
+    height: 100%; /* Adjust height as needed */
     margin: auto;
     padding: 20px;
     overflow: auto; /* Enable scrolling if content overflows */
+    justify-content: center;
 }
 
 .close {
@@ -305,15 +306,58 @@ body{
     right: 10px;
     cursor: pointer;
     font-size: 24px;
+    background-color: red;
 }
 
 .endContent {
     display: flex;
+    flex-direction: column;
     flex-wrap: wrap;
-    justify-content: space-between;
+    justify-content: center;
+    align-items: center;
 }
 
 .endContent img {
-    width: calc(20% - 10px); /* Adjust width and margins as needed */
+    width: 8vw; /* Adjust width and margins as needed */
     margin: 5px;
+}
+
+.endCard {
+    height: 8vw;
+    width: auto;
+}
+
+#r1 {
+    display: flex;
+}
+#r2 {
+    display: flex;
+}
+#r3 {
+    display: flex;
+}
+#r4 {
+    display: flex;
+}
+#r5 {
+    display: flex;
+}
+
+.ep1 {
+    color: blue;
+    font-size: 30px;
+    margin-left: 20px;
+    margin-right: 20px;
+}
+.ep2 {
+    color: rgb(57, 255, 57);
+    font-size: 30px;
+    margin-left: 20px;
+    margin-right: 20px;
+}
+.ep3 {
+    color: goldenrod;
+    font-size: 30px;
+    margin-left: 20px;
+    margin-right: 20px;
 }
