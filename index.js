@@ -67,6 +67,7 @@ var cardDict = {
     "SK" : "images/cards/spades_king.png",
     "SA" : "images/cards/spades_ace.png",
 }
+const resultDict = {};
 
 function welcomeClick(img) {
     var div = document.getElementById(img);
@@ -268,6 +269,8 @@ class Player {
         this.betThisRound = 0;
         this.betThisHand = 0;
         this.imgURL = imgURL;
+        this.result = 0;
+        this.wonThisRound = 0;
         Frontend.changeTextContent(this.id + 'p1', this.money);
         Frontend.changeTextContent(this.id + 'p2', this.betThisRound);
 
@@ -333,8 +336,7 @@ class DealCards {
             deck.push([suit, rank]);
           }
         }
-      
-        // Fisher-Yates shuffle algorithm
+        // Shuffle cards
         for (let i = deck.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -356,7 +358,7 @@ class DealCards {
         for (let i = 0; i < 5; i++) {
             board.push(deck.pop());
         }
-        return [pockets, board]
+        return [pockets, board];
     }
 }   
 
@@ -464,6 +466,7 @@ class Hand {
             }
         }
 
+
         Frontend.hideBlinds(players[this.littleBlind].id);
         Frontend.hideBlinds(players[(this.littleBlind + 1) % players.length].id);
 
@@ -474,6 +477,7 @@ class Hand {
         // console.log(players);
         this.call = 0;
         let orderedPlayers = [];
+        this.active = true;
         // console.log(players);
         // console.log(littleBlindPlayer, 'lb player')
         for (let j = 0; j < players.length; j++) {
@@ -596,22 +600,95 @@ class Hand {
             // console.log(rankedPlayers)
 
             this.endround(rankedPlayers);
+            this.active = false;
         } else if (end == true) {
             // rankedPlayers = this.evaluateHand(playersInRound)
             this.endround(rankedPlayers);
-         }
+            this.active = false;
+        }
+        
     }
         
     evaluateHand(players) {
+        for (let player of players) {
+            let cards = [this.card1, this.card2, this.card3, this.card4, this.card5, player.card1, player.card2];
+            // convert cards into arrays to handle more easily
+            for (let card of cards) {
+                if (card[1] == 'J') {
+                    card = [card[0], 11];
+                } else if (card[1] == 'Q') {
+                    card = [card[0], 12];
+                } else if (card[1] == 'K') {
+                    card = [card[0], 13];
+                } else if (card[1] == 'A') {
+                    card = [card[0], 14];
+                } else {
+                    card = [card[0], parseInt(card.slice(0))];
+                } 
+            }
+
+            // sort cards in descending order of rank
+            cards.sort((a, b) => b[1] - a[1]);
+
+
+
+        }
         console.log('');
+    }
+
+    isStraight(cards) {
+        // checks if there is a straight out of cards ordered by descending numerical value
+        let i = 0;
+        let straightCount = 0;
+        // iterates through each card
+        for (let card of cards) {
+            if (card[1] == 14) {
+                // handle low Ace straight
+                cards.append([card[0], 0]);
+            }
+            let j = i;
+            // checks if current card is the start of a straight
+            while (j < cards.length) {
+                console.log(cards[j][1])
+                console.log(straightCount)
+                console.log('')
+                if (cards[j][1] - cards[j + 1][1] == 1) {
+                    straightCount++;
+                    if (straightCount == 4) {
+                        // returns boolean and value of highest card in straight for tiebreaking
+                        return [true, cards[i][1]]
+                    }
+                } else if (cards[j][1] - cards[j + 1][1] == 0) {
+                    // if pair
+                } else {
+                    console.log('break')
+                    break
+                }
+                j++;
+            }
+            straightCount = 0;
+            
+            i++;
+        }
+        return [false, ''];
     }
 
     endround(playerArr) {
         console.log(playerArr)
         
         for (let i = 0; i < playerArr.length; i++) {
-            Frontend.changeImage("ranked" + (i + 1).toString(), playerArr[i].imgURL)
+            // display board
             Frontend.changeImage('ec' + (i + 1).toString(), Utils.translateCard(this.dealtCards.board[i]));
+            // update player images
+            Frontend.changeImage("ranked" + (i + 1).toString(), playerArr[i].imgURL)
+            // display player cards
+            Frontend.changeImage("r" + (i + 1).toString() + "c1", Utils.translateCard(playerArr[i].card1))
+            Frontend.changeImage("r" + (i + 1).toString() + "c2", Utils.translateCard(playerArr[i].card2))
+            Frontend.changeTextContent("r" + (i + 1).toString() + "p1", "Test!!!!!!!!!!!!!")
+            Frontend.changeTextContent("r" + (i + 1).toString() + "p2", playerArr[i].wonThisRound)
+            Frontend.changeTextContent("r" + (i + 1).toString() + "p3", '$' + playerArr[i].money.toString())
+
+
         }
 
         Frontend.showDiv('endDisplay')
@@ -642,10 +719,16 @@ class Hand {
 class Orbit {
     constructor() {
 
+
     }
     async initialize() {
-        let hand = new Hand();
-        hand.initialize();
+        let i = 0;
+        for (let player of players) {
+            let hand = new Hand(i);
+            await hand.initialize();
+            // this shifts the blind
+            i++;
+        }
 
 
         
@@ -665,14 +748,20 @@ function main() {
     // Frontend.hideDiv("card5")
     // Frontend.hideDiv("cardContainer")
     // Frontend.changeImage("card1Image", "images/cards/clubs_2.png")
+    
     p1 = new Player(false, username, 'p1', charSelect);
     p2 = new Player(false, "Stephen", 'p2', 'images/player2.png');
     p3 = new Player(false, "Alyssa", 'p3', 'images/player3.png');
     p4 = new Player(false, "Eric", 'p4', 'images/player4.png');
     p5 = new Player(false, "Alex", 'p5', 'images/player5.png');
 
-
     players = [p1, p3, p2, p5, p4];
+
+
+    let cards = [['D', 12], ['C', 10], ['H', 10], ['S', 9], ['S', 8], ['D', 7], ['D', 6]];
+    let h = new Hand();
+    console.log(cards)
+    console.log(h.isStraight(cards));
 
     var inTurn = false;
 
@@ -714,7 +803,7 @@ class Actions {
     static getIsTurnPlayer() {
         for (var player of players) {
             if (player.isTurn == true) {
-                return player
+                return player;
             }
         }
     }
@@ -728,34 +817,34 @@ class Utils {
         // returns path of image representing card
         // exception is 'back'
         if (card == 'back') {
-            return '/images/cards/back.png'
-        } else return cardDict[card.join("")]
+            return '/images/cards/back.png';
+        } else return cardDict[card.join("")];
     }
     static reverseMerge(left, right) {
         let sorted = [];
 
         while (left.length && right.length) {
             if (left[0] > right[0]) {
-                sorted.push(left.shift())
+                sorted.push(left.shift());
             } else {
-                sorted.push(right.shift())
+                sorted.push(right.shift());
             }
         }
-        return [...sorted, ...left, ...right]
+        return [...sorted, ...left, ...right];
     }
     static reverseMergeSort(arr) {
         // Base Case
         if (arr.length <= 1) {
-            return arr
+            return arr;
         }
         // to split array in half
         let mid = Math.floor(arr.length / 2)
 
         // Recursive Case
-        let left = this.reverseMergeSort(arr.slice(0, mid))
-        let right = this.reverseMergeSort(arr.slice(mid))
+        let left = this.reverseMergeSort(arr.slice(0, mid));
+        let right = this.reverseMergeSort(arr.slice(mid));
 
-        return this.reverseMerge(left, right)
+        return this.reverseMerge(left, right);
     }
 
 
