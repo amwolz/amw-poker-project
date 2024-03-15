@@ -173,16 +173,16 @@ const resultDict = {
 };
 
 const resultMessages = {
-    'RF' : "Royal Flush!!!!!",
+    'RF' : "Royal Flush!!!!!!!!",
     'SF' : "Straight Flush!!!!!",
     '4K' : 'Four Of A Kind!!!!!',
-    'FH' : 'Full House!!!!!',
-    'F' : 'Flush!!!!!',
-    'S' : 'Straight!!!!!',
+    'FH' : 'Full House!!!!!!!!!',
+    'F' : 'Flush!!!!!!!!!!!!!!!',
+    'S' : 'Straight!!!!!!!!!!!!',
     '3K' : "Three Of A Kind!!!!!",
-    '2P' : "Two Pair!!!!!",
-    'P' : "Pair!!!!!",
-    'HC' : "High Card!!!!!"
+    '2P' : "Two Pair!!!!!!!!!",
+    'P' : "Pair!!!!!!!!!!!!!!",
+    'HC' : "High Card!!!!!!!!"
 }
 
 function welcomeClick(img) {
@@ -352,6 +352,13 @@ class Frontend{
         card2.style.visibility = "hidden";
     }
 
+    static showCards(playerID) {
+        var card1 = document.getElementById(playerID + 'c1');
+        card1.style.visibility = "visible";
+        var card2 = document.getElementById(playerID + 'c2');
+        card2.style.visibility = "visible";
+    }
+
     static hideBlinds(playerID) {
         let sb = document.getElementById(playerID + 'sb');
         let bb = document.getElementById(playerID + 'bb');
@@ -367,6 +374,11 @@ class Frontend{
     static showBB(playerID) {
         let bb = document.getElementById(playerID + 'bb');
         bb.style.display = 'inline';
+    }
+
+    static changeParagraphColor(id, color) {
+        const paragraph = document.getElementById(id);
+        paragraph.style.color = color;
     }
 
 }
@@ -386,7 +398,7 @@ class Player {
         this.betThisHand = 0;
         this.imgURL = imgURL;
         this.result = 0;
-        this.wonThisRound = 0;
+        this.wonThisHand = 0;
         Frontend.changeTextContent(this.id + 'p1', this.money);
         Frontend.changeTextContent(this.id + 'p2', this.betThisRound);
 
@@ -562,12 +574,22 @@ class Hand {
         //     this.bettingRound([this.card1, this.card2, this.card3, 'back', 'back'])
         // }
     }
+
+    bootHand() {
+        for (let p of this.activePlayers) {
+            Frontend.showCards(p.id);
+            p.betThisHand = 0;
+            p.inRound = true;
+
+        }
+        
+    }
+
     async initialize() {
         let start;
         let end;
-        for (let player of players) {
-            player.betThisHand = 0;
-        }
+        this.active = true;
+        this.bootHand();
         Frontend.showSB(players[this.littleBlind].id);
         Frontend.showBB(players[(this.littleBlind + 1) % players.length].id);
 
@@ -619,12 +641,14 @@ class Hand {
             let lb = playerQueue.shift();
             lb.money -= lbAmount;
             lb.betThisRound += lbAmount;
+            lb.betThisHand += lbAmount;
             this.pot += lbAmount;
             this.updateFrontend(lb);
             playerQueue.push(lb);
             let bb = playerQueue.shift();
             bb.money -= bbAmount;
             bb.betThisRound += bbAmount;
+            bb.betThisHand += bbAmount;
             this.pot += bbAmount;
             this.call = bbAmount;
             this.updateFrontend(bb);
@@ -676,7 +700,7 @@ class Hand {
                     player.money -= (this.call - player.betThisRound);
                     this.pot += (this.call - player.betThisRound);
                     player.betThisRound += (this.call - player.betThisRound);
-                    player.betThisHand += player.betThisRound;
+                    player.betThisHand += (this.call - player.betThisRound);
                     this.updateFrontend(player);
 
                 } else if (playerAction[0] == 'fold') {
@@ -715,11 +739,31 @@ class Hand {
             // console.log('checkpoint done one player left')
             // console.log(rankedPlayers)
 
+            rankedPlayers[0].money += this.pot;
+            console.log(rankedPlayers[0].betThisHand);
+            rankedPlayers[0].wonThisHand = this.pot - rankedPlayers[0].betThisHand;
+
+            for (let rest of rankedPlayers.slice(1)) {
+                rest.wonThisHand = -rest.betThisHand;
+            }
+            // assign results to players but don't modify rankings
+            this.evaluateHand(rankedPlayers);
+
             this.endround(rankedPlayers);
             this.active = false;
         } else if (end == true) {
-            // rankedPlayers = this.evaluateHand(playersInRound)
-            this.endround(rankedPlayers);
+            console.log('PIRRRRRRR ' + playersInRound);
+            let others = [];
+            for (let other of this.activePlayers) {
+                if (!this.activePlayers.includes(other)) {
+                    others.push(other)
+                }
+            }
+
+            rankedPlayers = this.evaluateHand(playersInRound);
+            this.endround([...rankedPlayers, ...others]);
+            // Distribute Pot
+
             this.active = false;
         }
         
@@ -777,8 +821,10 @@ class Hand {
             const straightFlush = this.isStraightFlush(cards, suitCounts);
             const isFour = this.isFour(cards, rankCounts);
             const isThreeTwoOneDict = this.isThreeTwoOne(cards, rankCounts);
+            const isStraight = this.isStraight(cards)
 
             console.log('straightFlush ' + straightFlush);
+            console.log('isStraight ' + isStraight);
             console.log('isFour ' + isFour);
             console.log('isThreeTwoOneDict ' + isThreeTwoOneDict);
             for (let key in isThreeTwoOneDict) {
@@ -788,29 +834,55 @@ class Hand {
             console.log(straightFlush[1][0], straightFlush[1][1])
 
             console.log('rankCounts' + rankCounts);
-            if (straightFlush[0] == true && straightFlush[1][0][1] == 14) {
-                baskets['RF'].push(player);
+            if (straightFlush[0] && straightFlush[1][0][1] == 14) {
+                baskets['RF'].push([player]);
                 player.result = 'RF';
-
-            } else if (straightFlush[0] == true) {
-                baskets['SF'].push([player, straightFlush[1][0][1]])
-                player.result = 'SF'
-            } else if (isFour[0] == true) {
+            } else if (straightFlush[0]) {
+                baskets['SF'].push([player, straightFlush[1][0][1]]);
+                player.result = 'SF';
+            } else if (isFour[0]) {
                 baskets['4K'].push([player, isFour[1]]);
-                player.result = '4K'
+                player.result = '4K';
+            } else if (isThreeTwoOneDict['FH']) {
+                baskets['FH'].push([player, isThreeTwoOneDict['FH']]);
+                player.result = 'FH';
+            } else if (straightFlush[2]) {
+                // there can only be one suit of flush so there can only be one unique highcard in a flush
+                baskets['F'].push([player, straightFlush[1][0][1]]);
+                player.result = 'F';
+            } else if (isStraight[0]) {
+                baskets['S'].push([player, straightFlush[1]]);
+                player.result = 'S';
+            } else if (isThreeTwoOneDict['3K']) {
+                baskets['3K'].push([player, isThreeTwoOneDict['3K']]);
+                player.result = '3K';
+            } else if (isThreeTwoOneDict['2P']) {
+                baskets['2P'].push([player, isThreeTwoOneDict['2P']]);
+                player.result = '2P';
+            } else if (isThreeTwoOneDict['P']) {
+                baskets['P'].push([player, isThreeTwoOneDict['P']]);
+                player.result = 'P';
+            } else {
+                baskets['HC'].push([player, isThreeTwoOneDict['HC']]);
+                player.result = 'HC';
             }
-
-            // if (this.isStraight(cards)[0] == true && this.isStraight(cards)[1] == 14) {
-
-            // }
-
-
-
-
-
+        }
+        console.log('baskets')
+        for (let key in baskets) {
+            console.log(key, baskets[key]);
         }
         console.log('');
+        let rankedPlayers = [];
+        for (let key in baskets) {
+            if (baskets[key].length > 0) {
+                for (let playerInfo of baskets[key]) {
+                    rankedPlayers.push(playerInfo[0]);
+                }
+            }
+        }
+        return rankedPlayers;
     }
+
 
     isStraightFlush(cards, suitCounts) {
         // returns array [bool(are these cards a straightFlush), suited cards if a flush, bool(are these cards a flush?)]
@@ -834,7 +906,7 @@ class Hand {
             // not a flush
             return [false, '', false];
         } else {
-            if (this.isStraight(suited)) {
+            if (this.isStraight(suited)[0]) {
                 // straightFlush
                 return [true, suited_copy, true]
             } else {
@@ -858,7 +930,7 @@ class Hand {
         // checks if there is a straight out of cards ordered by descending rank value
         for (let i = 0; i < cardscopy.length - 4; i++) {
             let straightCount = 0;
-            for (let j = 0; j < cards.slice(i).length; j++) {
+            for (let j = 0; j < cardscopy.slice(i).length - 1; j++) {
                 if (cardscopy[i + j][1] - cardscopy[i + j + 1][1] == 1) {
                     straightCount++;
                     if (straightCount == 4) {
@@ -942,7 +1014,7 @@ class Hand {
         console.log(playerArr)
         for (let j = 0; j < 5; j++) {
             // display board
-            Frontend.changeImage('ec' + (i + 1).toString(), Utils.translateCard(this.dealtCards.board[i]));
+            Frontend.changeImage('ec' + (j + 1).toString(), Utils.translateCard(this.dealtCards.board[j]));
         }
         
         for (let i = 0; i < playerArr.length; i++) {
@@ -951,9 +1023,19 @@ class Hand {
             // display player cards
             Frontend.changeImage("r" + (i + 1).toString() + "c1", Utils.translateCard(playerArr[i].card1))
             Frontend.changeImage("r" + (i + 1).toString() + "c2", Utils.translateCard(playerArr[i].card2))
-            Frontend.changeTextContent("r" + (i + 1).toString() + "p1", "Test!!!!!!!!!!!!!")
-            Frontend.changeTextContent("r" + (i + 1).toString() + "p2", playerArr[i].wonThisRound)
-            Frontend.changeTextContent("r" + (i + 1).toString() + "p3", '$' + playerArr[i].money.toString())
+            Frontend.changeTextContent("r" + (i + 1).toString() + "p1", resultMessages[playerArr[i].result])
+            
+            if (playerArr[i].wonThisHand == 0) {
+                Frontend.changeParagraphColor("r" + (i + 1).toString() + "p2", "darkgray");
+                Frontend.changeTextContent("r" + (i + 1).toString() + "p2", playerArr[i].wonThisHand);
+            } else if (playerArr[i].wonThisHand < 0) {
+                Frontend.changeParagraphColor("r" + (i + 1).toString() + "p2", "red");
+                Frontend.changeTextContent("r" + (i + 1).toString() + "p2", playerArr[i].wonThisHand);
+            } else {
+                Frontend.changeParagraphColor("r" + (i + 1).toString() + "p2", "rgb(57, 255, 57)");
+                Frontend.changeTextContent("r" + (i + 1).toString() + "p2", '+' + playerArr[i].wonThisHand);
+            }
+            Frontend.changeTextContent("r" + (i + 1).toString() + "p3", '$' + playerArr[i].money.toString());
 
 
         }
@@ -978,10 +1060,11 @@ class Hand {
         Frontend.changeTextContent('roundInfoParagraph', this.call)
         Frontend.changeTextContent(player.id + 'p1', player.money)
         Frontend.changeTextContent(player.id + 'p2', player.betThisRound);
+    }
         
 
-    }
 }
+
 
 class Orbit {
     constructor() {
@@ -1185,13 +1268,20 @@ function test() {
 
 
     // Test.testis321('DA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10');
-    Test.testis321('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D10');
-    Test.testis321('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D3');
+    // Test.testis321('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D10');
+    // Test.testis321('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D3');
+    // Test.testis321('SJ', 'C8', 'C5', 'S5', 'H4', 'S3', 'D2');
+    // Test.testStraightFlush('SA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10')
+    // Test.testis321('SJ', 'C8', 'C5', 'SA', 'H4', 'S3', 'D2');
+    Test.testis321('D3', 'DA', 'C10', 'D8', 'D13', 'H7', 'D12');
+
+
+
 
 
 
 
     
 }
-test();
-// main();
+// test();
+main();
