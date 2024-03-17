@@ -8,11 +8,7 @@ var wim1 = document.getElementById("wim1");
 var wim2 = document.getElementById("wim2");
 var wim3 = document.getElementById("wim3");
 var wim4 = document.getElementById("wim4");
-let rankedFirst;
-let rankedSecond;
-let rankedThird;
-let rankedFourth;
-let rankedFifth;
+
 var cardDict = {
     "C2" : "images/cards/clubs_2.png",
     "C3": "images/cards/clubs_3.png",
@@ -699,8 +695,8 @@ class Hand {
                 } else if (playerAction[0] == 'checkcall') {
                     player.money -= (this.call - player.betThisRound);
                     this.pot += (this.call - player.betThisRound);
-                    player.betThisRound += (this.call - player.betThisRound);
                     player.betThisHand += (this.call - player.betThisRound);
+                    player.betThisRound += (this.call - player.betThisRound);
                     this.updateFrontend(player);
 
                 } else if (playerAction[0] == 'fold') {
@@ -718,7 +714,7 @@ class Hand {
         console.log('-----------');
         console.log(playersInRound.length);
         let rankedPlayers = [];
-        if (playersInRound.length == 1) {
+        if (playersInRound.length <= 1) {
             // shallow copy of active players
             let apCopy = [...this.activePlayers];
             // winner of round
@@ -755,12 +751,24 @@ class Hand {
             console.log('PIRRRRRRR ' + playersInRound);
             let others = [];
             for (let other of this.activePlayers) {
-                if (!this.activePlayers.includes(other)) {
+                console.log(other.playerID);
+                console.log(this.activePlayers);
+                this.activePlayers.forEach(function(element) {console.log(element);});
+                if (!playersInRound.includes(other)) {
                     others.push(other)
                 }
             }
 
+            others = this.evaluateHand(others);
+
             rankedPlayers = this.evaluateHand(playersInRound);
+            console.log('---------------');
+            console.log([...rankedPlayers, ...others]);
+
+            for (let rest of [...rankedPlayers, ...others]) {
+                rest.wonThisHand = -rest.betThisHand;
+            }
+
             this.endround([...rankedPlayers, ...others]);
             // Distribute Pot
 
@@ -881,6 +889,34 @@ class Hand {
             }
         }
         return rankedPlayers;
+    }
+
+    handlebaskets(baskets) {
+        // input baskets from a hand but each basket is unsorted
+        // output baskets from a hand with tiebreak handled
+        if (baskets['RF'].length > 1) {
+            // only way this is possible is if baord is a RF
+            // this will have pot distributed evenly between all players in round
+            baskets['RF'] = [baskets['RF']];
+        } else if (baskets['SF'].length > 1) {
+            // impossible to tie on straight flush 
+            baskets['SF'].sort((a, b) => b[1] - a[1]);
+            let sortedCopy = [...baskets['SF']];
+            let tiebrokenBasket = [[sortedCopy[0]]];
+
+
+            for (let i = 0; i < sortedCopy.length; i++) {
+                let currentPlayer = sortedCopy[i];
+                let contains = false;
+
+
+                for 
+            }
+
+        } else if (baskets['4K'].length > 1) {
+            // can only be one four of a kind
+        } else if (baskets['FH'].length > 1) 
+
     }
 
 
@@ -1023,6 +1059,12 @@ class Hand {
             // display player cards
             Frontend.changeImage("r" + (i + 1).toString() + "c1", Utils.translateCard(playerArr[i].card1))
             Frontend.changeImage("r" + (i + 1).toString() + "c2", Utils.translateCard(playerArr[i].card2))
+
+            if (playerArr[i].inRound == false) {
+                Frontend.changeParagraphColor("r" + (i + 1).toString() + "p1", "darkgray");
+            } else {
+                Frontend.changeParagraphColor("r" + (i + 1).toString() + "p1", "blue");
+            }
             Frontend.changeTextContent("r" + (i + 1).toString() + "p1", resultMessages[playerArr[i].result])
             
             if (playerArr[i].wonThisHand == 0) {
@@ -1114,13 +1156,14 @@ function main() {
     return null
 }
 
-class Actions {
+class Actions extends Hand {
     constructor() {
 
     }
 
     static raiseAction() {
         console.log("raise")
+        
         userResponse = ['raise', document.getElementById("myTextbox").value]
         setUserAction('raise')
     }
