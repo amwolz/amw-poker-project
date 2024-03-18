@@ -395,6 +395,7 @@ class Player {
         this.imgURL = imgURL;
         this.result = 0;
         this.wonThisHand = 0;
+        this.tie = 0;
         Frontend.changeTextContent(this.id + 'p1', this.money);
         Frontend.changeTextContent(this.id + 'p2', this.betThisRound);
 
@@ -414,11 +415,6 @@ class Player {
         Frontend.changeImage(this.id + 'c1', Utils.translateCard('back'));
         Frontend.changeImage(this.id + 'c2', Utils.translateCard('back'));
 
-        // this.isTurn = true;
-        // while (this.isTurn == true) {
-        // }
-        // Frontend.hideDiv('actionContainer')
-        // setTimeout(this.delayedFunction, 3000)
         return response;
 
     }
@@ -432,10 +428,14 @@ class Player {
 
 
 class DealCards {
-    constructor(players) {
-        var deal = this.deal(players.length)
-        this.pockets = deal[0]
-        this.board = deal[1]
+    constructor(players, testBoard=false) {
+        if (testBoard) {
+            var deal = this.dealBoard(players.length, testBoard);
+        } else {
+            var deal = this.deal(players.length);
+        }
+        this.pockets = deal[0];
+        this.board = deal[1];
         // deals cards
         for (var player of players) {
             this.player = player;
@@ -481,6 +481,21 @@ class DealCards {
         }
         for (let i = 0; i < 5; i++) {
             board.push(deck.pop());
+        }
+        return [pockets, board];
+    }
+
+    dealBoard(numPlayers, givenBoard) {
+        var deck = this.shuffleDeck();
+        var board = [...givenBoard]
+        var pockets = [];
+        for (let boardCard of givenBoard) {
+            deck = deck.filter(item => item !== boardCard)
+        }
+        for (let i = 0; i < numPlayers; i++) {
+            var card1 = deck.pop();
+            var card2 = deck.pop();
+            pockets.push([card1, card2]);
         }
         return [pockets, board];
     }
@@ -549,11 +564,18 @@ class BettingRound {
 }
 
 class Hand {
-    constructor(littleBlind=0) {
+    constructor(littleBlind=0, testBoard = []) {
         this.littleBlind = littleBlind
         this.activePlayers = players.filter(player => player.active === true);
         console.log(this.activePlayers + ' activePlayers')
-        this.dealtCards = new DealCards(this.activePlayers)
+        
+        if (testBoard.length > 0) {
+            this.dealtCards = new DealCards(this.activePlayers, testBoard=testBoard)
+
+        } else {
+            this.dealtCards = new DealCards(this.activePlayers)
+        }
+
         this.card1 = this.dealtCards.board[0];
         this.card2 = this.dealtCards.board[1];
         this.card3 = this.dealtCards.board[2];
@@ -576,7 +598,10 @@ class Hand {
             Frontend.showCards(p.id);
             p.betThisHand = 0;
             p.inRound = true;
-
+            p.tie = 0;
+            p.wonThisHand = 0;
+            p.betThisRound = 0;
+            p.result = '';
         }
         
     }
@@ -627,7 +652,6 @@ class Hand {
         for (let i = 1; i <= 5; i++) {
             // console.log(cards[i-1])
             Frontend.changeImage('card' + i.toString() + 'Image', Utils.translateCard(cards[i - 1]));
-
         }
 
         let playerQueue = orderedPlayers.slice();
@@ -657,7 +681,7 @@ class Hand {
             let player = playerQueue.shift();
             this.updateFrontend(player);
  
-            if (player.inRound) {
+            if (player.inRound && this.activePlayers.filter(p => p.inRound == true).length > 1) {
                 // playerAction will be a type array with information about user's action
                 // playerAction will modify player's information in the Player Class, and
                 // will modify game information here below
@@ -765,6 +789,10 @@ class Hand {
             console.log('---------------');
             console.log([...rankedPlayers, ...others]);
 
+
+
+
+
             for (let rest of [...rankedPlayers, ...others]) {
                 rest.wonThisHand = -rest.betThisHand;
             }
@@ -821,6 +849,7 @@ class Hand {
                 suitCounts[card[0]] = (suitCounts[card[0]] || 0) + 1;
             });
 
+
             console.log(rankCounts);
             console.log(suitCounts);
 
@@ -846,37 +875,55 @@ class Hand {
                 baskets['RF'].push([player]);
                 player.result = 'RF';
             } else if (straightFlush[0]) {
+                // [player, straightFlush high card rank]
                 baskets['SF'].push([player, straightFlush[1][0][1]]);
                 player.result = 'SF';
             } else if (isFour[0]) {
-                baskets['4K'].push([player, isFour[1]]);
+                // [player, 4 of a kind rank, highest 5th card]
+                baskets['4K'].push([player, isFour[1], this.highCard(player, cards, isFour[1])]);
                 player.result = '4K';
             } else if (isThreeTwoOneDict['FH']) {
-                baskets['FH'].push([player, isThreeTwoOneDict['FH']]);
+                // [player, trip HC, dub HC]
+                baskets['FH'].push([player, ...isThreeTwoOneDict['FH']]);
                 player.result = 'FH';
             } else if (straightFlush[2]) {
                 // there can only be one suit of flush so there can only be one unique highcard in a flush
-                baskets['F'].push([player, straightFlush[1][0][1]]);
+                // [player, [highest 5 cards of flush]]
+                // [player, [['S', 8], ... , ['S', 4]]]
+                baskets['F'].push([player, straightFlush[1].slice(0, 5)]);
                 player.result = 'F';
             } else if (isStraight[0]) {
-                baskets['S'].push([player, straightFlush[1]]);
+                // [player, straight HC (integer)]
+                baskets['S'].push([player, isStraight[1]]);
                 player.result = 'S';
             } else if (isThreeTwoOneDict['3K']) {
+                // [player, [3k rank, HC1, HC2]]
                 baskets['3K'].push([player, isThreeTwoOneDict['3K']]);
                 player.result = '3K';
             } else if (isThreeTwoOneDict['2P']) {
+                // [player, [high pair rank, low pair rank, other highest card rank]]
                 baskets['2P'].push([player, isThreeTwoOneDict['2P']]);
                 player.result = '2P';
             } else if (isThreeTwoOneDict['P']) {
+                // [player, [pair rank, HC1 #, HC2 #, HC3 #]]
                 baskets['P'].push([player, isThreeTwoOneDict['P']]);
                 player.result = 'P';
             } else {
+                // [player, [highest 5 cards]]
                 baskets['HC'].push([player, isThreeTwoOneDict['HC']]);
                 player.result = 'HC';
             }
         }
+        // this ranks each basket and accounts for ties too
+        // each nonempty basket will now be a nested array, with each element of subarray
+        // representing a ranking of the basket. if two players are in the same subarray, they are tied
+        console.log(baskets)
+        baskets = this.handlebaskets(baskets);
         console.log('baskets')
         for (let key in baskets) {
+            for (let p of baskets[key]) {
+                console.log(p[0]);
+            }
             console.log(key, baskets[key]);
         }
         console.log('');
@@ -884,14 +931,34 @@ class Hand {
         for (let key in baskets) {
             if (baskets[key].length > 0) {
                 for (let playerInfo of baskets[key]) {
-                    rankedPlayers.push(playerInfo[0]);
+                    let tiedPlayers = []
+                    if (playerInfo.length == 1)
+                        // pushes just player, not extra info
+                        rankedPlayers.push(playerInfo[0][0]);
+                    else if (playerInfo.length > 1) {
+                        for (let tiedPlayer of playerInfo) {
+                            // again pushes just player
+                            tiedPlayers.push(tiedPlayer[0]);
+                        }
+                        // array of players tied
+                        rankedPlayers.push(tiedPlayers);
+                    }
                 }
             }
         }
+        console.log(rankedPlayers + 'rankedPlayers')
         return rankedPlayers;
     }
 
     handlebaskets(baskets) {
+        for (let key in baskets) {
+            if (baskets[key].length == 1) {
+                // the length of each basket value will indicate whether 
+                // player is in tie or not. So if there is only one player in
+                // a basket, they cannot be tied with any other player 
+                baskets[key] = [baskets[key]];
+            }
+        }
         // input baskets from a hand but each basket is unsorted
         // output baskets from a hand with tiebreak handled
         if (baskets['RF'].length > 1) {
@@ -899,24 +966,248 @@ class Hand {
             // this will have pot distributed evenly between all players in round
             baskets['RF'] = [baskets['RF']];
         } else if (baskets['SF'].length > 1) {
-            // impossible to tie on straight flush 
+            // can tie on straight flush if high card is on board
             baskets['SF'].sort((a, b) => b[1] - a[1]);
             let sortedCopy = [...baskets['SF']];
             let tiebrokenBasket = [[sortedCopy[0]]];
 
-
-            for (let i = 0; i < sortedCopy.length; i++) {
+            // incase tie
+            for (let i = 1; i < sortedCopy.length; i++) {
                 let currentPlayer = sortedCopy[i];
                 let contains = false;
-
-
-                for 
+                for (let j = 0; j < tiebrokenBasket.length; j++) {
+                    if (currentPlayer[1] == tiebrokenBasket[j][0][1]) {
+                        contains = true;
+                        tiebrokenBasket[j].push(currentPlayer);
+                    }
+                }
+                if (contains == false) {
+                    tiebrokenBasket.push([currentPlayer]);
+                }                
             }
 
-        } else if (baskets['4K'].length > 1) {
-            // can only be one four of a kind
-        } else if (baskets['FH'].length > 1) 
+            baskets['SF'] = tiebrokenBasket;
 
+
+        } else if (baskets['4K'].length > 1) {
+            // orders by 4K rank first, then by highcard rank
+            baskets['4K'].sort((a, b) => b[1] - a[1] + 0.01 * (b[2] - a[2]));
+            let sortedCopy = [...baskets['4K']];
+            let tiebrokenBasket = [[sortedCopy[0]]];
+            
+            // incase tie (extremely rare)
+            for (let i = 1; i < sortedCopy.length; i++) {
+                let currentPlayer = sortedCopy[i];
+                let contains = false;
+                for (let j = 0; j < tiebrokenBasket.length; j++) {
+                    if (currentPlayer[1] == tiebrokenBasket[j][0][1] && currentPlayer[2] == tiebrokenBasket[j][0][2]) {
+                        contains = true;
+                        tiebrokenBasket[j].push(currentPlayer);
+                    }
+                }
+                if (contains == false) {
+                    tiebrokenBasket.push([currentPlayer]);
+                }   
+            }
+
+            baskets['4K'] = tiebrokenBasket;
+
+
+        } else if (baskets['FH'].length > 1) {
+            // orders by first 3K rank then by 2K rank
+            baskets['FH'].sort((a, b) => b[1] - a[1] + 0.01 * (b[2] - a[2]));
+            let sortedCopy = [...baskets['FH']];
+            let tiebrokenBasket = [[sortedCopy[0]]];
+            
+            // incase tie
+            for (let i = 1; i < sortedCopy.length; i++) {
+                let currentPlayer = sortedCopy[i];
+                let contains = false;
+                for (let j = 0; j < tiebrokenBasket.length; j++) {
+                    if (currentPlayer[1] == tiebrokenBasket[j][0][1] && currentPlayer[2] == tiebrokenBasket[j][0][2]) {
+                        contains = true;
+                        tiebrokenBasket[j].push(currentPlayer);
+                    }
+                }
+                if (contains == false) {
+                    tiebrokenBasket.push([currentPlayer]);
+                }   
+            }
+
+            baskets['FH'] = tiebrokenBasket;
+
+
+        } else if (baskets['F'].length > 1) {
+            // orders by first, second, ..., then fifth high cards in flush
+            // these cards will already be in descending order
+            baskets['F'].sort((a, b) => b[1][0][1] - a[1][0][1] + 0.01 * (b[1][1][1] - a[1][1][1]) +
+                            0.0001 * (b[1][2][1] - a[1][2][1] +  0.000001 * (b[1][3][1] - a[1][3][1])) +
+                            0.00000001 * (b[1][4][1] - a[1][4][1]));
+            let sortedCopy = [...baskets['F']];
+            let tiebrokenBasket = [[sortedCopy[0]]];
+            
+            // incase tie
+            for (let i = 1; i < sortedCopy.length; i++) {
+                let currentPlayer = sortedCopy[i];
+                let contains = false;
+                for (let j = 0; j < tiebrokenBasket.length; j++) {
+                    // checks if 5 cards are exactly equal (only if board contains flush)
+                    if (currentPlayer[1] == tiebrokenBasket[j][0][1]) {
+                        contains = true;
+                        tiebrokenBasket[j].push(currentPlayer);
+                    }
+                }
+                if (contains == false) {
+                    tiebrokenBasket.push([currentPlayer]);
+                }   
+            }
+
+            baskets['F'] = tiebrokenBasket;
+
+        } else if (baskets['S'].length > 1) {
+            // orders by highcard of straight
+            baskets['S'].sort((a, b) => b[1] - a[1]);
+            let sortedCopy = [...baskets['S']];
+            let tiebrokenBasket = [[sortedCopy[0]]];
+            
+            // incase tie
+            for (let i = 1; i < sortedCopy.length; i++) {
+                let currentPlayer = sortedCopy[i];
+                let contains = false;
+                for (let j = 0; j < tiebrokenBasket.length; j++) {
+                    if (currentPlayer[1] == tiebrokenBasket[j][0][1]) {
+                        contains = true;
+                        tiebrokenBasket[j].push(currentPlayer);
+                    }
+                }
+                if (contains == false) {
+                    tiebrokenBasket.push([currentPlayer]);
+                }   
+            }
+
+            baskets['S'] = tiebrokenBasket;
+
+        } else if (baskets['3K'].length > 1) {
+            // orders by first, second, ..., then fifth high cards in flush
+            // these cards will already be in descending order
+            baskets['3K'].sort((a, b) => b[1][0] - a[1][0] + 0.01 * (b[1][1] - a[1][1]) +
+                            0.0001 * (b[1][2] - a[1][2]));
+            let sortedCopy = [...baskets['3K']];
+            let tiebrokenBasket = [[sortedCopy[0]]];
+            
+            // incase tie
+            for (let i = 1; i < sortedCopy.length; i++) {
+                let currentPlayer = sortedCopy[i];
+                let contains = false;
+                for (let j = 0; j < tiebrokenBasket.length; j++) {
+                    // checks if 5 cards are exactly equal (only if board contains flush)
+                    if (currentPlayer[1] == tiebrokenBasket[j][0][1]) {
+                        contains = true;
+                        tiebrokenBasket[j].push(currentPlayer);
+                    }
+                }
+                if (contains == false) {
+                    tiebrokenBasket.push([currentPlayer]);
+                }   
+            }
+
+            baskets['3K'] = tiebrokenBasket;
+
+        } else if (baskets['2P'].length > 1) {
+            // orders by first, second, ..., then fifth high cards in flush
+            // these cards will already be in descending order
+            baskets['2P'].sort((a, b) => b[1][0] - a[1][0] + 0.01 * (b[1][1] - a[1][1]) +
+                            0.0001 * (b[1][2] - a[1][2]));
+            let sortedCopy = [...baskets['2P']];
+            let tiebrokenBasket = [[sortedCopy[0]]];
+            
+            // incase tie
+            for (let i = 1; i < sortedCopy.length; i++) {
+                let currentPlayer = sortedCopy[i];
+                let contains = false;
+                for (let j = 0; j < tiebrokenBasket.length; j++) {
+                    // checks if 5 cards are exactly equal (only if board contains flush)
+                    if (currentPlayer[1] == tiebrokenBasket[j][0][1]) {
+                        contains = true;
+                        tiebrokenBasket[j].push(currentPlayer);
+                    }
+                }
+                if (contains == false) {
+                    tiebrokenBasket.push([currentPlayer]);
+                }   
+            }
+
+            baskets['2P'] = tiebrokenBasket;
+
+        } else if (baskets['P'].length > 1) {
+            // orders by first, second, ..., then fifth high cards in flush
+            // these cards will already be in descending order
+            baskets['P'].sort((a, b) => b[1][0] - a[1][0] + 0.01 * (b[1][1] - a[1][1]) +
+                            0.0001 * (b[1][2] - a[1][2]) + 0.000001 * (b[1][3] - a[1][3]));
+            let sortedCopy = [...baskets['P']];
+            let tiebrokenBasket = [[sortedCopy[0]]];
+            
+            // incase tie
+            for (let i = 1; i < sortedCopy.length; i++) {
+                let currentPlayer = sortedCopy[i];
+                let contains = false;
+                for (let j = 0; j < tiebrokenBasket.length; j++) {
+                    // checks if 5 cards are exactly equal (only if board contains flush)
+                    if (currentPlayer[1] == tiebrokenBasket[j][0][1]) {
+                        contains = true;
+                        tiebrokenBasket[j].push(currentPlayer);
+                    }
+                }
+                if (contains == false) {
+                    tiebrokenBasket.push([currentPlayer]);
+                }   
+            }
+
+            baskets['P'] = tiebrokenBasket;
+
+        } else if (baskets['HC'].length > 1) {
+            // orders by first, second, ..., then fifth high cards in flush
+            // these cards will already be in descending order
+            baskets['HC'].sort((a, b) => b[1][0][1] - a[1][0][1] + 0.01 * (b[1][1][1] - a[1][1][1]) +
+                            0.0001 * (b[1][2][1] - a[1][2][1] +  0.000001 * (b[1][3][1] - a[1][3][1])) +
+                            0.00000001 * (b[1][4][1] - a[1][4][1]));
+            let sortedCopy = [...baskets['HC']];
+            let tiebrokenBasket = [[sortedCopy[0]]];
+            
+            // incase tie
+            for (let i = 1; i < sortedCopy.length; i++) {
+                let currentPlayer = sortedCopy[i];
+                let contains = false;
+                for (let j = 0; j < tiebrokenBasket.length; j++) {
+                    // checks if 5 cards are exactly equal (only if board contains flush)
+                    if (currentPlayer[1] == tiebrokenBasket[j][0][1]) {
+                        contains = true;
+                        tiebrokenBasket[j].push(currentPlayer);
+                    }
+                }
+                if (contains == false) {
+                    tiebrokenBasket.push([currentPlayer]);
+                }   
+            }
+
+            baskets['HC'] = tiebrokenBasket;
+
+        }
+        return baskets;
+    }
+
+    highCard(player, cards, ...args) {
+        // args represent the excepted card values
+        let highCard = 0;
+        for (let card of cards) {
+            for (let exception of args) {
+                if (card[1] !== exception && card[1] > highCard) {
+                    highCard = card[1];
+                }
+            }
+        }
+        // highCard is integer representing highest rank other than rank(s) specified in args
+        return highCard
     }
 
 
@@ -1006,12 +1297,12 @@ class Hand {
         // only because cards are entered in descdending order we don't have to worry about second 3 of kind
         for (let key in rankCounts) {
             if (rankCounts[key] == 3) {
-                trips.push(key);
+                trips.push(parseInt(key));
                 // removes trips from cards
                 cardscopy = cardscopy.filter(card => card[1] !== key);
             } else if (rankCounts[key] == 2) {
                 // dubs will also be in descending order
-                dubs.push(key);
+                dubs.push(parseInt(key));
                 // removes dubs from cards
                 cardscopy = cardscopy.filter(card => card[1] !== key);
             }
@@ -1031,7 +1322,7 @@ class Hand {
             twopair = [dubs[0], dubs[1], cards[0]];     
         } else if (dubs.length == 1) {
             // single pair
-            pair = [dubs[0], cards[0], cards[1], cards[2]]
+            pair = [dubs[0], cards[0][1], cards[1][1], cards[2][1]]
         } else {
             // high card
             highcard = cards.slice(0, 5);
@@ -1240,7 +1531,7 @@ class Utils {
 class Test {
     constructor() {
 
-        this.testStraight();
+        // this.testStraight();
     }
     static testStraight(testCards){
         let cards = [['D', 12], ['C', 10], ['H', 10], ['S', 9], ['S', 8], ['D', 7], ['D', 6]];
@@ -1265,31 +1556,13 @@ class Test {
         p.card1 = pc1;
         p.card2 = pc2;
         h.evaluateHand([p]);
+
     }
-    static testStraightFlush(hc1, hc2, hc3, hc4, hc5, pc1, pc2) {
-        let h = new Hand();
-        let p = p3;
-        h.card1 = hc1;
-        h.card2 = hc2;
-        h.card3 = hc3;
-        h.card4 = hc4;
-        h.card5 = hc5;
-        p.card1 = pc1;
-        p.card2 = pc2;
-        h.evaluateHand([p]);
+    static testGivenBoard(board) {
+        let h = new Hand(0, board);
+        h.initialize();
     }
-    static testis321(hc1, hc2, hc3, hc4, hc5, pc1, pc2) {
-        let h = new Hand();
-        let p = p4;
-        h.card1 = hc1;
-        h.card2 = hc2;
-        h.card3 = hc3;
-        h.card4 = hc4;
-        h.card5 = hc5;
-        p.card1 = pc1;
-        p.card2 = pc2;
-        h.evaluateHand([p]);
-    }
+    
 }
 
 function test() {
@@ -1300,25 +1573,26 @@ function test() {
     p5 = new Player(false, "Alex", 'p5', 'images/player5.png');
 
     players = [p1, p3, p2, p5, p4];
+
     // let t = new Test;
     // Test.testEvalCards('DA', 'DK', 'CA', 'C2', 'S2', 'S5', 'H5')
-    // Test.testStraightFlush('DA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10')
+    // Test.testEvalCards('DA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10')
     // // above is a straightflush so returns [true, array, true]
-    // Test.testStraightFlush('SA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10')
+    // Test.testEvalCards('SA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10')
     // // above is a straight but not a flush, so returns [false, '', false]
     // Test.testStraight([['S', 14], ['D', 13], ['D', 12], ['D', 11], ['D', 10], ['C', 4], ['S', 3]]);
     // // above is he same set of cards, but is a straight so the isStraight function returns [true, 14]
 
 
-    // Test.testis321('DA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10');
-    // Test.testis321('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D10');
-    // Test.testis321('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D3');
-    // Test.testis321('SJ', 'C8', 'C5', 'S5', 'H4', 'S3', 'D2');
-    // Test.testStraightFlush('SA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10')
-    // Test.testis321('SJ', 'C8', 'C5', 'SA', 'H4', 'S3', 'D2');
-    Test.testis321('D3', 'DA', 'C10', 'D8', 'D13', 'H7', 'D12');
+    Test.testEvalCards('DA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10');
+    Test.testEvalCards('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D10');
+    Test.testEvalCards('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D3');
+    Test.testEvalCards('SJ', 'C8', 'C5', 'S5', 'H4', 'S3', 'D2');
+    Test.testEvalCards('SA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10')
+    Test.testEvalCards('SJ', 'C8', 'C5', 'SA', 'H4', 'S3', 'D2');
+    Test.testEvalCards('D3', 'DA', 'C10', 'D8', 'D13', 'H7', 'D12');
 
-
+    Test.testGivenBoard([['S', '3'], ['C', '7'], ['D', '9'], ['H', '2'], ['H', 'J']]);
 
 
 
@@ -1326,5 +1600,5 @@ function test() {
 
     
 }
-// test();
-main();
+test();
+// main();
