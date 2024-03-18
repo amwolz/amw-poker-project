@@ -243,6 +243,8 @@ function closeEndContent() {
 // }
 
 var userResponse = false;
+var playerInTurn;
+var callAmount;
 const lbAmount = 1;
 const bbAmount = 2;
 
@@ -396,6 +398,7 @@ class Player {
         this.result = 0;
         this.wonThisHand = 0;
         this.tie = 0;
+        this.allIn = false;
         Frontend.changeTextContent(this.id + 'p1', this.money);
         Frontend.changeTextContent(this.id + 'p2', this.betThisRound);
 
@@ -406,7 +409,7 @@ class Player {
         console.log(this.card1);
         console.log(this.card2);
         console.log("test1");
-        document.getElementById("myRange").setAttribute("max", this.money);
+        document.getElementById("myRange").setAttribute("max", (this.money - callAmount + this.betThisRound));
         Frontend.showDiv('actionContainer');
         Frontend.changeImage(this.id + 'c1', Utils.translateCard(this.card1));
         Frontend.changeImage(this.id + 'c2', Utils.translateCard(this.card2));
@@ -490,14 +493,30 @@ class DealCards {
         var board = [...givenBoard]
         var pockets = [];
         for (let boardCard of givenBoard) {
-            deck = deck.filter(item => item !== boardCard)
+            deck = deck.filter(item => !this.arraysAreEqual(item, boardCard));
         }
+        // for (let c of deck) {
+        //     console.log(c);
+        // }
+        // console.log(deck);
         for (let i = 0; i < numPlayers; i++) {
             var card1 = deck.pop();
             var card2 = deck.pop();
             pockets.push([card1, card2]);
         }
         return [pockets, board];
+    }
+
+    arraysAreEqual(arr1, arr2) {
+        if (arr1.length !== arr2.length) {
+            return false;
+        }
+        for (let i = 0; i < arr1.length; i++) {
+            if (arr1[i] !== arr2[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 }   
 
@@ -602,6 +621,7 @@ class Hand {
             p.wonThisHand = 0;
             p.betThisRound = 0;
             p.result = '';
+            p.allIn = false;
         }
         
     }
@@ -685,6 +705,8 @@ class Hand {
                 // playerAction will be a type array with information about user's action
                 // playerAction will modify player's information in the Player Class, and
                 // will modify game information here below
+                playerInTurn = player;
+                callAmount = this.call;
                 this.checkcallHandler(player);
                 var playerAction = await player.promptMove();
                 console.log(this.pot, this.call, 'initial')
@@ -692,10 +714,10 @@ class Hand {
                     let raiseAmount = parseInt(playerAction[1]);
                     this.pot += raiseAmount + this.call - player.betThisRound;
                     
-                    console.log('---------------')
-                    console.log(raiseAmount)
-                    console.log(this.call)
-                    console.log(player.betThisRound)
+                    console.log('---------------');
+                    console.log(raiseAmount);
+                    console.log(this.call);
+                    console.log(player.betThisRound);
 
                     player.money -= (raiseAmount + this.call - player.betThisRound);
                     player.betThisRound = (raiseAmount + this.call);
@@ -704,14 +726,15 @@ class Hand {
 
                     this.updateFrontend(player);
                     
-                    let index = orderedPlayers.indexOf(player)
-                    let preceding = orderedPlayers.slice(0, index)
-                    let succeeding = orderedPlayers.slice(index + 1)
+                    let index = orderedPlayers.indexOf(player);
+                    let preceding = orderedPlayers.slice(0, index);
+                    let succeeding = orderedPlayers.slice(index + 1);
 
+                    // update playerQueue to ensure every player has a chance to match the bet
                     for (let additional of succeeding.concat(preceding)) {
                         if (additional.inRound) {
                             if (playerQueue.includes(additional) == false) {
-                                playerQueue.push(additional)
+                                playerQueue.push(additional);
                             }
                         }
                     }
@@ -779,7 +802,7 @@ class Hand {
                 console.log(this.activePlayers);
                 this.activePlayers.forEach(function(element) {console.log(element);});
                 if (!playersInRound.includes(other)) {
-                    others.push(other)
+                    others.push(other);
                 }
             }
 
@@ -1379,10 +1402,10 @@ class Hand {
 
     checkcallHandler(activePlayer) {
         if (this.call > 0 & this.call > activePlayer.betThisRound) {
-            if (activePlayer.money >= this.call) {
+            if ((playerInTurn.money + playerInTurn.betThisRound) >= this.call) {
             Frontend.changeTextContent('checkcallDisplay', 'Call')
             } else {
-            Frontend.changeTextContent('checkcallDisplay', 'Partial Call: ' + activePlayer.money)
+            Frontend.changeTextContent('checkcallDisplay', 'Partial Call: All In ' + activePlayer.money)
             }
         } else {
             Frontend.changeTextContent('checkcallDisplay', 'Check')
@@ -1453,10 +1476,13 @@ class Actions extends Hand {
     }
 
     static raiseAction() {
-        console.log("raise")
-        
-        userResponse = ['raise', document.getElementById("myTextbox").value]
-        setUserAction('raise')
+        if (document.getElementById("myTextbox").value <= (playerInTurn.money - callAmount + playerInTurn.betThisRound) 
+            && document.getElementById("myTextbox").value > 0) {
+            console.log("raise");
+            userResponse = ['raise', document.getElementById("myTextbox").value];
+            setUserAction('raise');
+        }
+
     }
 
     static checkcallAction() {
@@ -1584,15 +1610,17 @@ function test() {
     // // above is he same set of cards, but is a straight so the isStraight function returns [true, 14]
 
 
-    Test.testEvalCards('DA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10');
-    Test.testEvalCards('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D10');
-    Test.testEvalCards('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D3');
-    Test.testEvalCards('SJ', 'C8', 'C5', 'S5', 'H4', 'S3', 'D2');
-    Test.testEvalCards('SA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10')
-    Test.testEvalCards('SJ', 'C8', 'C5', 'SA', 'H4', 'S3', 'D2');
-    Test.testEvalCards('D3', 'DA', 'C10', 'D8', 'D13', 'H7', 'D12');
+    // Test.testEvalCards('DA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10');
+    // Test.testEvalCards('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D10');
+    // Test.testEvalCards('DA', 'DK', 'CA', 'SA', 'C4', 'S3', 'D3');
+    // Test.testEvalCards('SJ', 'C8', 'C5', 'S5', 'H4', 'S3', 'D2');
+    // Test.testEvalCards('SA', 'DK', 'DQ', 'DJ', 'C4', 'S3', 'D10')
+    // Test.testEvalCards('SJ', 'C8', 'C5', 'SA', 'H4', 'S3', 'D2');
+    // Test.testEvalCards('D3', 'DA', 'C10', 'D8', 'D13', 'H7', 'D12');
 
-    Test.testGivenBoard([['S', '3'], ['C', '7'], ['D', '9'], ['H', '2'], ['H', 'J']]);
+    // Test.testGivenBoard([['S', '3'], ['C', '7'], ['D', '9'], ['H', '2'], ['H', 'J']]);
+    Test.testGivenBoard([['S', 'A'], ['S', 'K'], ['S', 'Q'], ['S', 'J'], ['S', '10']]);
+
 
 
 
