@@ -602,7 +602,13 @@ class Hand {
         this.card5 = this.dealtCards.board[4];
         this.active = true;
         this.pot = 0;
+        this.pot2 = 0;
+        this.pot3 = 0;
+        this.pot4 = 0;
         this.call = 0;
+        this.splitcall1 = 0;
+        this.splitcall2 = 0;
+        this.splitcall3 = 0;
         this.start = null;
 
         // cards are dealt/assigned to each player and board
@@ -657,6 +663,10 @@ class Hand {
         this.call = 0;
         let orderedPlayers = [];
         this.active = true;
+        let splitpot1 = 0;
+        let splitpot2 = 0;
+        let splitpot3 = 0;
+
         // console.log(players);
         // console.log(littleBlindPlayer, 'lb player')
         for (let j = 0; j < players.length; j++) {
@@ -700,8 +710,9 @@ class Hand {
         while (playerQueue.length > 0) {
             let player = playerQueue.shift();
             this.updateFrontend(player);
+            let pInRound = this.activePlayers.filter(p => p.inRound == true);
  
-            if (player.inRound && this.activePlayers.filter(p => p.inRound == true).length > 1) {
+            if (player.inRound && player.allIn == false && pInRound.length > 1) {
                 // playerAction will be a type array with information about user's action
                 // playerAction will modify player's information in the Player Class, and
                 // will modify game information here below
@@ -740,11 +751,39 @@ class Hand {
                     }
                        
                 } else if (playerAction[0] == 'checkcall') {
-                    player.money -= (this.call - player.betThisRound);
-                    this.pot += (this.call - player.betThisRound);
-                    player.betThisHand += (this.call - player.betThisRound);
-                    player.betThisRound += (this.call - player.betThisRound);
-                    this.updateFrontend(player);
+                    // incase partial call, incase the call amount is greater than what the player can bet
+                    // if this.call - player.betThisRound > player.money
+                    if (player.allIn) {
+                        if (this.pot2 == 0) {
+                            // first instance of split pot
+                            let difference = 0;
+                            for (let p of pInRound) {
+                                if (p.betThisRound == this.call) {
+                                    difference += (p.betThisRound - player.money);
+                                }
+                            }
+                            this.pot2 = this.pot - difference + player.money;
+                            this.pot = difference;
+                            this.splitcall1 = player.money;
+                            player.betThisRound += player.money;
+                            player.betThisHand += player.money;
+                            player.money = 0;
+                            this.updateFrontend(player);
+
+                            
+                        } else if (this.pot3 == 0) {
+
+                        } else if (this.pot4 == 0) {
+
+                        }
+                        
+                    } else {
+                        player.money -= (this.call - player.betThisRound);
+                        this.pot += (this.call - player.betThisRound);
+                        player.betThisHand += (this.call - player.betThisRound);
+                        player.betThisRound += (this.call - player.betThisRound);
+                        this.updateFrontend(player);
+                    }
 
                 } else if (playerAction[0] == 'fold') {
                     // already taken care of in promptMove
@@ -755,6 +794,7 @@ class Hand {
                 console.log(this.pot, this.call, 'final')
 
             }
+
         }
         this.call = 0;
         let playersInRound = this.activePlayers.filter(p => p.inRound == true);
@@ -809,18 +849,77 @@ class Hand {
             others = this.evaluateHand(others);
 
             rankedPlayers = this.evaluateHand(playersInRound);
+
+            // rankedPlayers and others will be array of possilby nested arrays or just players
+            // if an element of rankedPlayers is an array, that means the players within that
+            // array are tied
+
             console.log('---------------');
             console.log([...rankedPlayers, ...others]);
 
+            let handledOthers = [];
 
-
-
-
-            for (let rest of [...rankedPlayers, ...others]) {
+            for (let rest of others) {
+                // if folded then can't have any winnings
+                if (Array.isArray(rest)) {
+                    // handle tied hands
+                    for (let tied of rest) {
+                        tied.wonThisHand = - tied.betThisHand
+                        handledOthers.push(tied);
+                    }
+                }
                 rest.wonThisHand = -rest.betThisHand;
+                handledOthers.push(rest);
+            }
+            // now handledOthers is a simple array of folded players
+            // really shouldn't evaluate hands of others but want to showcase code for now
+            console.log('rp' + rankedPlayers[0]);
+            console.log(rankedPlayers[0][0]);
+            let handledRanked = [];
+            let j = 1;
+
+            
+
+            for (let rankedPlayer of rankedPlayers) {
+                // again slight misnomer bc rankePlayer could be an array of tied players
+                if (Array.isArray(rankedPlayer)) {
+                    console.log('yes!!!')
+                    // handle tied hands
+                    for (let tied of rankedPlayer) {
+
+                        tied.tie = j;
+                        handledRanked.push(tied);
+                    }
+                } else {
+                    handledRanked.push(rankedPlayer);
+                }
+                j++;
             }
 
-            this.endround([...rankedPlayers, ...others]);
+
+
+            let first = 0;
+            let second = 0;
+            let third = 0;
+            let fourth = 0;
+            for (let p of handledRanked) {
+                if (p.tie == 1) {
+                    first++;
+                } else if (p.tie == 2) {
+                    second++;
+                } else if (p.tie == 3) {
+                    third++;
+                } else if (p.tie == 4) {
+                    fourth++;
+                }
+            }
+
+            
+
+            for (let e of [...handledRanked, ...handledOthers]) {
+                console.log(e);
+            };
+            this.endround([...handledRanked, ...handledOthers]);
             // Distribute Pot
 
             this.active = false;
