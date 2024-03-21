@@ -218,6 +218,16 @@ function arraysAreEqual(arr1, arr2) {
     return true;
 }
 
+function upsert(array, value) {
+    const index = array.indexOf(value);
+
+    if (index !== -1) {
+        array[index] = value;
+    } else {
+        array.push(value);
+    }
+}
+
 class Frontend{
     constructor() {
 
@@ -501,10 +511,21 @@ class Hand {
         this.card4 = this.dealtCards.board[3];
         this.card5 = this.dealtCards.board[4];
         this.active = true;
-        this.pot = 0;
-        this.pot2 = 0;
-        this.pot3 = 0;
-        this.pot4 = 0;
+        this.pot = {amount: 0,
+                    call: 0,
+                    inPlayers : []};
+        this.pot2 = {amount: 0,
+                    call: 0,
+                    inPlayers : []};
+        this.pot3 = {amount: 0,
+                    call: 0,
+                    inPlayers : []};
+        this.pot4 = {amount: 0,
+                    call: 0,
+                    inPlayers : []};
+        this.pot4 = {amount: 0,
+                    call: 0,
+                    inPlayers : []};            
         this.call = 0;
         this.splitcall1 = 0;
         this.splitcall2 = 0;
@@ -565,9 +586,18 @@ class Hand {
         this.call = 0;
         let orderedPlayers = [];
         this.active = true;
-        let splitpot1 = 0;
-        let splitpot2 = 0;
-        let splitpot3 = 0;
+        let splitpot1 = {amount: 0,
+                        call: 0,
+                        inPlayers: []};
+        let splitpot2 = {amount: 0,
+                        call: 0,
+                        inPlayers: []};
+        let splitpot3 = {amount: 0,
+                        call: 0,
+                        inPlayers: []};
+        let splitpot4 = {amount: 0,
+                        call: 0,
+                        inPlayers: []};
 
         // console.log(players);
         // console.log(littleBlindPlayer, 'lb player')
@@ -594,14 +624,14 @@ class Hand {
             lb.money -= lbAmount;
             lb.betThisRound += lbAmount;
             lb.betThisHand += lbAmount;
-            this.pot += lbAmount;
+            this.pot.amount += lbAmount;
             this.updateFrontend(lb);
             playerQueue.push(lb);
             let bb = playerQueue.shift();
             bb.money -= bbAmount;
             bb.betThisRound += bbAmount;
             bb.betThisHand += bbAmount;
-            this.pot += bbAmount;
+            this.pot.amount += bbAmount;
             this.call = bbAmount;
             this.updateFrontend(bb);
             playerQueue.push(bb);
@@ -611,8 +641,41 @@ class Hand {
         // players' turns
         while (playerQueue.length > 0) {
             let player = playerQueue.shift();
-            this.updateFrontend(player);
             let pInRound = this.activePlayers.filter(p => p.inRound == true);
+            let potsArr = [this.pot, splitpot1, splitpot2, splitpot3, splitpot4]
+            potsArr = potsArr.order((a, b) => b.call - a.call);
+            let maxCall;
+            let activePot;
+            let firstAvailable;
+
+            for (let p of potsArr) {
+                if (p.amount == 0) {
+                    firstAvailable = p;
+                }
+            }
+
+            if (potsArr[0].call == 0) {
+                // true call is 0, this is a check
+                callAmount = 0;
+                maxCall = 0;
+                activepot = potsArr[0];
+            } else {
+                for (let p of potsArr) {
+        
+                    if (player.money + player.betThisRound >= p.call) {
+                        maxCall = p.call;
+                        activePot = p;
+                        break
+                    }
+                    // if player 
+                    activePot = firstAvailable;
+                    callAmount = -1;
+                }
+            }
+
+            callAmount = maxCall
+
+            this.updateFrontend(player);
  
             if (player.inRound && player.allIn == false && pInRound.length > 1) {
                 // playerAction will be a type array with information about user's action
@@ -622,10 +685,10 @@ class Hand {
                 callAmount = this.call;
                 this.checkcallHandler(player);
                 var playerAction = await player.promptMove();
-                console.log(this.pot, this.call, 'initial')
+                console.log(this.pot.amount, this.call, 'initial')
                 if (playerAction[0] == 'raise') {
                     let raiseAmount = parseInt(playerAction[1]);
-                    this.pot += raiseAmount + this.call - player.betThisRound;
+                    this.pot.amount += raiseAmount + this.call - player.betThisRound;
                     
                     console.log('---------------');
                     console.log(raiseAmount);
@@ -655,36 +718,79 @@ class Hand {
                 } else if (playerAction[0] == 'checkcall') {
                     // incase partial call, incase the call amount is greater than what the player can bet
                     // if this.call - player.betThisRound > player.money
-                    if (player.allIn) {
-                        if (this.pot2 == 0) {
-                            // first instance of split pot
-                            let difference = 0;
-                            for (let p of pInRound) {
-                                if (p.betThisRound == this.call) {
-                                    difference += (p.betThisRound - player.money);
+                    
+                    player.money -= (this.call - player.betThisRound);
+                    this.handleCallPots(this.call - player.betThisRound, this.pot, potsArr[0], potsArr[1], potsArr[2]);
+                    player.betThisHand += (this.call - player.betThisRound);
+                    player.betThisRound += (this.call - player.betThisRound);
+                    this.updateFrontend(player);
+                    
+
+                } else if (playerAction[0] == 'allIn') {
+                    // if player can't make the main call (also the max call)
+                    // then they can fold, call the max available call to them, or go all in                   
+                    
+
+                    if (playerAction[1] == 'raise') {
+                        // if all in on a raise
+                        for (let i = 0; i < potsArr.length; i++) {
+                            // find first call that can fully cover, likely will just be first call
+                            if (player.money + player.betThisRound >= potsArr[i].call) {
+                                // contribute to all pots with lesser calls
+                                firstAvailable.call = player.money + player.betThisRound;
+                                for (let j = i; j < potsArr.length; j++) {
+                                    if (potsArr[j].call != 0) {
+                                        potsArr[j].amount += (potsArr[j].call - player.betThisRound);
+                                        player.money -= (potsArr[j].call - player.betThisRound);
+                                        upsert(potsArr[j].inPlayers, player);
+                                    }
+                                
                                 }
+                                if (i != 0) {
+                                    // if there are larger calls, take money away from next largest call pot
+                                    // Don't need to iterate through these bc only next largest is affected
+                                    potsArr[i - 1].amount -= potsArr[i - 1].inPlayers.length * (potsArr[i - 1].call - (player.money + player.betThisRound));
+                                    firstAvailable.amount += potsArr[i - 1].inPlayers.length * (potsArr[i - 1].call - (player.money + player.betThisRound)) + player.money;
+
+                                } else {
+                                    firstAvailable.amount = player.money;
+                                    upsert(firstAvailable.inPlayers, player);
+                                }
+                                
                             }
-                            this.pot2 = this.pot - difference + player.money;
-                            this.pot = difference;
-                            this.splitcall1 = player.money;
-                            player.betThisRound += player.money;
-                            player.betThisHand += player.money;
-                            player.money = 0;
-                            this.updateFrontend(player);
-
-                            
-                        } else if (this.pot3 == 0) {
-
-                        } else if (this.pot4 == 0) {
-
                         }
+
+
+                    } else if (playerAction[1] == 'call') {
+                        // if all in on a call/partial call
                         
-                    } else {
-                        player.money -= (this.call - player.betThisRound);
-                        this.pot += (this.call - player.betThisRound);
-                        player.betThisHand += (this.call - player.betThisRound);
-                        player.betThisRound += (this.call - player.betThisRound);
+                    }
+
+                    if (potsArr[0].amount == 0) {
+                        // first instance of split pot of this round
+                        let difference = 0;
+                        // adjust for previous betters
+                        for (let p of pInRound) {
+                            if (p.betThisRound == this.call) {
+                                difference += (p.betThisRound - player.money);
+                            }
+                        }
+                        // splitpot2 will be the old pot 
+                        potsArr[0].amount = this.pot.amount - difference + player.money;
+                        // pot will be the new pot
+                        this.pot.amount = difference;
+                        potsArr[0].amount = player.money;
+                        player.betThisRound += player.money;
+                        player.betThisHand += player.money;
+                        player.money = 0;
                         this.updateFrontend(player);
+                        
+                    } else if (this.pot3.amount == 0) {
+                        
+                    } else if (this.pot4.amount == 0) {
+
+                    } else if (this.pot5.amount == 0) {
+
                     }
 
                 } else if (playerAction[0] == 'fold') {
@@ -693,7 +799,7 @@ class Hand {
                     Frontend.hideCards(player.id)
                 }
 
-                console.log(this.pot, this.call, 'final')
+                console.log(this.pot.amount, this.call, 'final')
 
             }
 
@@ -724,9 +830,9 @@ class Hand {
             // console.log('checkpoint done one player left')
             // console.log(rankedPlayers)
 
-            rankedPlayers[0].money += this.pot;
+            rankedPlayers[0].money += this.pot.amount;
             console.log(rankedPlayers[0].betThisHand);
-            rankedPlayers[0].wonThisHand = this.pot - rankedPlayers[0].betThisHand;
+            rankedPlayers[0].wonThisHand = this.pot.amount - rankedPlayers[0].betThisHand;
 
             for (let rest of rankedPlayers.slice(1)) {
                 rest.wonThisHand = -rest.betThisHand;
@@ -757,10 +863,10 @@ class Hand {
             let winners = showdownPlayers.filter(item => item.rank == 1);
             for (let showdownPlayer of showdownPlayers) {
                 if (showdownPlayer.rank == 1) {
-                    showdownPlayer.wonThisHand = Math.round(this.pot / winners.length) - showdownPlayer.betThisHand;
-                    showdownPlayer.money += Math.round(this.pot / winners.length);
+                    showdownPlayer.wonThisHand = Math.round(this.pot.amount / winners.length) - showdownPlayer.betThisHand;
+                    showdownPlayer.money += Math.round(this.pot.amount / winners.length);
                 } else {
-                    showdownPlayer.wonThisHand = - showdownPlayer.betThisHand
+                    showdownPlayer.wonThisHand = - showdownPlayer.betThisHand;
                 }
             }
 
@@ -773,6 +879,34 @@ class Hand {
             this.active = false;
         }
         
+    }
+
+    handleCallPots(callAmountNew, mainPot, sidePot1, sidePot2, sidePot3) {
+        // this is if player calls the full amount
+        // can't be a sidePot 4 because this player is not creating a new pot
+        if (sidePot1.amount != 0) {
+            if (sidePot2.amount != 0) {
+                if (sidePot3.amount != 0) {
+                    sidePot3.amount += sidePot3.call;
+                    sidePot2.amount += sidePot2.call;
+                    sidePot1.amount += sidePot1.call;
+                    mainPot.amount += (callAmountNew - sidePot1.call - sidePot2.call - sidePot3);
+
+                } else {
+                    sidePot2.amount += sidePot2.call;
+                    sidePot1.amount += sidePot1.call;
+                    mainPot.amount += (callAmountNew - sidePot1.call - sidePot2.call);
+                }
+
+            } else {
+                sidePot1.amount += sidePot1.call;
+                mainPot.amount += (callAmountNew - sidePot1.call);
+            }
+
+        } else {
+            // no side pots
+            mainPot.amount += callAmountNew;
+        }
     }
     
     evaluateHand(players) {
@@ -1160,17 +1294,17 @@ class Hand {
 
     checkcallHandler(activePlayer) {
         if (this.call > 0 & this.call > activePlayer.betThisRound) {
-            if ((playerInTurn.money + playerInTurn.betThisRound) >= this.call) {
+            if ((playerInTurn.money + playerInTurn.betThisRound) > this.call) {
             Frontend.changeTextContent('checkcallDisplay', 'Call')
             } else {
-            Frontend.changeTextContent('checkcallDisplay', 'Partial Call: All In ' + activePlayer.money)
+            Frontend.changeTextContent('checkcallDisplay', 'Partial Call: ' + activePlayer.money)
             }
         } else {
             Frontend.changeTextContent('checkcallDisplay', 'Check')
         }
     }
     updateFrontend(player) {
-        Frontend.changeTextContent('potAmount', this.pot)
+        Frontend.changeTextContent('potAmount', this.pot.amount)
         Frontend.changeTextContent('roundInfoParagraph', this.call)
         Frontend.changeTextContent(player.id + 'p1', player.money)
         Frontend.changeTextContent(player.id + 'p2', player.betThisRound);
@@ -1236,28 +1370,49 @@ class Actions extends Hand {
     static raiseAction() {
         if (document.getElementById("myTextbox").value <= (playerInTurn.money - callAmount + playerInTurn.betThisRound) 
             && document.getElementById("myTextbox").value > 0) {
-            console.log("raise");
-            userResponse = ['raise', document.getElementById("myTextbox").value];
-            setUserAction('raise');
+                if (document.getElementById("myTextbox").value == (playerInTurn.money - callAmount + playerInTurn.betThisRound)) {
+                    // all in
+                    console.log("ALL IN");
+                    userResponse = ['allIn', 'raise', document.getElementById("myTextbox").value];
+                    setUserAction('allIn');
+                } else {
+                    console.log("raise");
+                    userResponse = ['raise', document.getElementById("myTextbox").value];
+                    setUserAction('raise');
+                }
+            
         }
 
     }
 
     static checkcallAction() {
-        console.log("check call")
-        userResponse = ['checkcall', '']
-        setUserAction('checkcall')
+        if ((playerInTurn.money + playerInTurn.betThisRound) <= callAmount) {
+            console.log("ALL IN");
+            userResponse = ['allIn', 'call'];
+            setUserAction('allIn');
+        } else {
+            console.log("check call");
+            userResponse = ['checkcall', ''];
+            setUserAction('checkcall');
+        }
         
     }
 
     static foldAction() {
-        console.log("fold")
-        userResponse = ['fold', '']
-        setUserAction('fold')
+        console.log("fold");
+        userResponse = ['fold', ''];
+        setUserAction('fold');
     }
+
+    static allInAction() {
+        console.log("ALL IN");
+        userResponse = ['allIn', ''];
+        setUserAction('allIn');
+    }
+
     static response(){
-        const resp = actionFunction()
-        return resp
+        const resp = actionFunction();
+        return resp;
     }
 
     static getIsTurnPlayer() {
