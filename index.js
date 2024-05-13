@@ -140,7 +140,7 @@ function closeEndContent() {
 
 var userResponse = false;
 var playerInTurn;
-var callAmount;
+var largestCallAmount;
 const lbAmount = 1;
 const bbAmount = 2;
 
@@ -157,41 +157,6 @@ function waitUserAction() {
         };
     });
 }
-
-let i = 0;
-
-// function delayedLog() {
-//   console.log(i);
-//   i++;
-  
-//   if (i < 10) {
-//     if (userResponse == true) {
-
-//     }
-//     setTimeout(delayedLog, 1000);
-//   }
-//   else {
-//     i = 0;
-//   }
-// }
-
-// async function listenerUserAction() {
-//     return new Promise((resolve) => {
-//         // while (userResponse == false) {
-//         // setTimeout(console.log("listen"), 1000)
-//         // }
-//         // resolve        
-//         if (userResponse === true) {
-//             console.log(i, true);
-//             i = 0;
-            
-//         } else {
-//             console.log(i, false);
-//             setTimeout(listenerUserAction(), 1000);
-//             i++;
-//         }
-//     })
-// }
 
 async function asyncAwaitUserResponse() {
     console.log("start waiting for user input");
@@ -216,6 +181,16 @@ function arraysAreEqual(arr1, arr2) {
         }
     }
     return true;
+}
+
+function upsert(array, value) {
+    const index = array.indexOf(value);
+
+    if (index !== -1) {
+        array[index] = value;
+    } else {
+        array.push(value);
+    }
 }
 
 class Frontend{
@@ -320,7 +295,7 @@ class Player {
         console.log(this.card1);
         console.log(this.card2);
         console.log("test1");
-        document.getElementById("myRange").setAttribute("max", (this.money - callAmount + this.betThisRound));
+        document.getElementById("myRange").setAttribute("max", (this.money - largestCallAmount + this.betThisRound));
         Frontend.showDiv('actionContainer');
         Frontend.changeImage(this.id + 'c1', Utils.translateCard(this.card1));
         Frontend.changeImage(this.id + 'c2', Utils.translateCard(this.card2));
@@ -505,7 +480,7 @@ class Hand {
         this.pot2 = 0;
         this.pot3 = 0;
         this.pot4 = 0;
-        this.call = 0;
+        largestCallAmount = 0;
         this.splitcall1 = 0;
         this.splitcall2 = 0;
         this.splitcall3 = 0;
@@ -555,22 +530,25 @@ class Hand {
 
 
         Frontend.hideBlinds(players[this.littleBlind].id);
-        Frontend.hideBlinds(players[(this.littleBlind + 1) % players.length].id);
+        Frontend.hideBlinds(players[(this.littleBlind + 1) % this.activePlayers.length].id);
 
     }
     
     async bettingRound(cards, players, littleBlindPlayer, start=false, end=false){
         // console.log(this.activePlayers);
         // console.log(players);
-        this.call = 0;
         let orderedPlayers = [];
         this.active = true;
-        let splitpot1 = 0;
-        let splitpot2 = 0;
-        let splitpot3 = 0;
 
-        // console.log(players);
-        // console.log(littleBlindPlayer, 'lb player')
+        // currentPots[0] will always be the "active pot", the only pot without a fixed call
+        // the pot where, if raised, will have a changed call amount
+        let currentPots = [{amount: 0,
+                            call: 0,
+                            inPlayers: [],
+                            id: 0,
+                            active: true}];
+        largestCallAmount = 0;
+        
         for (let j = 0; j < players.length; j++) {
             // changes the small and big blind each round
             // console.log(players[(littleBlindPlayer + j) % players.length])
@@ -602,9 +580,10 @@ class Hand {
             bb.betThisRound += bbAmount;
             bb.betThisHand += bbAmount;
             this.pot += bbAmount;
-            this.call = bbAmount;
+            currentPots[0].call = bbAmount;
             this.updateFrontend(bb);
             playerQueue.push(bb);
+            largestCallAmount = bbAmount;
         }
 
 
@@ -619,22 +598,49 @@ class Hand {
                 // playerAction will modify player's information in the Player Class, and
                 // will modify game information here below
                 playerInTurn = player;
-                callAmount = this.call;
-                this.checkcallHandler(player);
+                let maxCallPot = {amount: 0,
+                    call: 0,
+                    inPlayers: [],
+                    id: 0,
+                    active: true};
+                for (let currentPot of currentPots) {
+                    if (currentPot.call > maxCallPot.call) {
+                        maxCallPot = currentPot;
+                    }
+                }
+                largestCallAmount = maxCallPot.call;  
+                this.actionHandler(player);
                 var playerAction = await player.promptMove();
-                console.log(this.pot, this.call, 'initial')
+                console.log(this.pot, largestCallAmount, 'initial');
+                tempOrderedCurrentPots = currentPots.sort((a, b) => b.call - a.call);
+                let maxPossiblePot = {amount: 0,
+                    call: 0,
+                    inPlayers: [],
+                    id: 0,
+                    active: true};
+                // relevantPots will be array of pots in descending order of only call amounts that player is able to call
+                let relevantPots = [];
+                let i = 0;
+                for (let pot of tempOrderedCurrentPots) {
+                    if (pot.call <= player.money + player.betThisRound) {
+                        maxPossiblePot = pot;
+                        relevantPots = tempOrderedCurrentPots.slice(i);
+                    }
+                    i++;
+                }
+
                 if (playerAction[0] == 'raise') {
                     let raiseAmount = parseInt(playerAction[1]);
-                    this.pot += raiseAmount + this.call - player.betThisRound;
+                    this.pot += raiseAmount + currentPots[0].call - player.betThisRound;
                     
                     console.log('---------------');
                     console.log(raiseAmount);
-                    console.log(this.call);
+                    console.log(currentPots[0].call);
                     console.log(player.betThisRound);
 
-                    player.money -= (raiseAmount + this.call - player.betThisRound);
-                    player.betThisRound = (raiseAmount + this.call);
-                    this.call += raiseAmount;
+                    player.money -= (raiseAmount + currentPots[0].call - player.betThisRound);
+                    player.betThisRound = (raiseAmount + currentPots[0].call);
+                    currentPots[0].call += raiseAmount;
                     player.betThisHand += player.betThisRound;
 
                     this.updateFrontend(player);
@@ -653,38 +659,33 @@ class Hand {
                     }
                        
                 } else if (playerAction[0] == 'checkcall') {
-                    // incase partial call, incase the call amount is greater than what the player can bet
-                    // if this.call - player.betThisRound > player.money
-                    if (player.allIn) {
-                        if (this.pot2 == 0) {
-                            // first instance of split pot
-                            let difference = 0;
-                            for (let p of pInRound) {
-                                if (p.betThisRound == this.call) {
-                                    difference += (p.betThisRound - player.money);
-                                }
-                            }
-                            this.pot2 = this.pot - difference + player.money;
-                            this.pot = difference;
-                            this.splitcall1 = player.money;
-                            player.betThisRound += player.money;
-                            player.betThisHand += player.money;
-                            player.money = 0;
-                            this.updateFrontend(player);
-
+                    player.money -= relevantPots[0].call;
+                    for (let i = 0; i < relevantPots.length, i++;) {
+                        let next;
+                        if (i = relevantPots.length - 1) {
+                            next = 0;
+                        } else {
                             
-                        } else if (this.pot3 == 0) {
-
-                        } else if (this.pot4 == 0) {
-
                         }
+
+                    }
+                    // regular check/call                    
+                    player.money -= (currentPots[0].call - player.betThisRound);
+                    this.pot += (currentPots[0].call - player.betThisRound);
+                    player.betThisHand += (currentPots[0].call - player.betThisRound);
+                    player.betThisRound += (currentPots[0].call - player.betThisRound);
+                    this.updateFrontend(player);
+                    }
+
+                } else if (playerAction[0] == 'allIn') {
+                    if (playerAction[1] == 'call') {
+                        // all in on a partial call or call
+                        // the call must be the largest call the player can call
                         
-                    } else {
-                        player.money -= (this.call - player.betThisRound);
-                        this.pot += (this.call - player.betThisRound);
-                        player.betThisHand += (this.call - player.betThisRound);
-                        player.betThisRound += (this.call - player.betThisRound);
-                        this.updateFrontend(player);
+
+                    } else if (playerAction[1] == 'raise') {
+                        // all in on a raise
+
                     }
 
                 } else if (playerAction[0] == 'fold') {
@@ -693,16 +694,16 @@ class Hand {
                     Frontend.hideCards(player.id)
                 }
 
-                console.log(this.pot, this.call, 'final')
-
-            }
+                console.log(this.pot, currentPots[0].call, 'final')
 
         }
-        this.call = 0;
+        
+        currentPots[0].call = 0;
         let playersInRound = this.activePlayers.filter(p => p.inRound == true);
         console.log('-----------');
         console.log(playersInRound.length);
         let rankedPlayers = [];
+        // handles ending of hand if needed
         if (playersInRound.length <= 1) {
             // shallow copy of active players
             let apCopy = [...this.activePlayers];
@@ -1158,20 +1159,31 @@ class Hand {
 
     }
 
-    checkcallHandler(activePlayer) {
-        if (this.call > 0 & this.call > activePlayer.betThisRound) {
-            if ((playerInTurn.money + playerInTurn.betThisRound) >= this.call) {
-            Frontend.changeTextContent('checkcallDisplay', 'Call')
+    actionHandler(activePlayer) {
+        if (largestCallAmount > activePlayer.betThisRound) {
+            if ((activePlayer.money + activePlayer.betThisRound) >= largestCallAmount) {
+                Frontend.changeTextContent('checkcallDisplay', 'Call');
+            } else if ((activePlayer.money + activePlayer.betThisRound) == largestCallAmount) {
+                Frontend.changeTextContent('checkcallDisplay', 'Call: All In ' + activePlayer.money);
             } else {
-            Frontend.changeTextContent('checkcallDisplay', 'Partial Call: All In ' + activePlayer.money)
+                Frontend.changeTextContent('checkcallDisplay', 'Partial Call: All In ' + activePlayer.money);
             }
         } else {
             Frontend.changeTextContent('checkcallDisplay', 'Check')
         }
+        if (largestCallAmount > activePlayer.money + activePlayer.betThisRound) {
+            // largest call cannot be met
+            Frontend.hideDiv('raise');
+            Frontend.showDiv('allIn');
+        } else {
+            // largest call can be met
+            Frontend.showDiv('raise');
+            Frontend.hideDiv('allIn');
+        }
     }
     updateFrontend(player) {
         Frontend.changeTextContent('potAmount', this.pot)
-        Frontend.changeTextContent('roundInfoParagraph', this.call)
+        Frontend.changeTextContent('roundInfoParagraph', largestCallAmount)
         Frontend.changeTextContent(player.id + 'p1', player.money)
         Frontend.changeTextContent(player.id + 'p2', player.betThisRound);
     }
@@ -1234,20 +1246,39 @@ class Actions extends Hand {
     }
 
     static raiseAction() {
-        if (document.getElementById("myTextbox").value <= (playerInTurn.money - callAmount + playerInTurn.betThisRound) 
+        if (document.getElementById("myTextbox").value <= (playerInTurn.money - largestCallAmount + playerInTurn.betThisRound) 
             && document.getElementById("myTextbox").value > 0) {
-            console.log("raise");
-            userResponse = ['raise', document.getElementById("myTextbox").value];
-            setUserAction('raise');
+                if (document.getElementById("myTextbox").value == (playerInTurn.money - largestCallAmount + playerInTurn.betThisRound)) {
+                    // all in
+                    console.log("ALL IN raise");
+                    userResponse = ['allIn', 'raise', document.getElementById("myTextbox").value];
+                    setUserAction('allIn');
+                } else {
+                    console.log("raise");
+                    userResponse = ['raise', document.getElementById("myTextbox").value];
+                    setUserAction('raise');
+                }
         }
 
     }
 
     static checkcallAction() {
-        console.log("check call")
-        userResponse = ['checkcall', '']
-        setUserAction('checkcall')
+        if ((playerInTurn.money + playerInTurn.betThisRound) <= largestCallAmount) {
+            console.log("ALL IN checkcall");
+            userResponse = ['allIn', 'call'];
+            setUserAction('allIn');
+        } else {
+            console.log("check call");
+            userResponse = ['checkcall', ''];
+            setUserAction('checkcall');
+        }
         
+    }
+
+    static allInAction() {
+        console.log("ALL IN checkcall");
+        userResponse = ['allIn', 'call'];
+        setUserAction('allIn');
     }
 
     static foldAction() {
@@ -1398,7 +1429,9 @@ function test() {
     // P dealt
     // Test.testGivenBoard([['S', '3'], ['D', 'J'], ['C', '9'], ['S', '2'], ['H', '9']]);
     // HC dealt
-    Test.testGivenBoard([['S', 'J'], ['D', '2'], ['C', '3'], ['S', '4'], ['H', '10']]);
+    // Test.testGivenBoard([['S', 'J'], ['D', '2'], ['C', '3'], ['S', '4'], ['H', '10']]);
+    Test.testGivenBoard([['S', '4'], ['D', '5'], ['C', '8'], ['S', '6'], ['H', '7']]);
+
 
 
 
@@ -1410,5 +1443,5 @@ function test() {
 
     
 }
-test();
-// main();
+// test();
+main();

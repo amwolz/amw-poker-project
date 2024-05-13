@@ -221,6 +221,9 @@ body{
 #raise {
     background-color: yellow;
 }
+#allIn {
+    background-color: yellow;
+}
 #raiseLabel:hover {
     background-color: lightgrey;
 }

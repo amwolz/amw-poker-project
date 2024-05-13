@@ -113,11 +113,14 @@
         </div>
     </div>
     <div id="actionContainer">
-        <div class="action" id="raise">
+        <div class="action" id="raise" display="block">
             <input type="range" id="myRange" name="myRange" min="0" max="100" value="0" oninput="updateTextbox()">
             <br>
             <label id="raiseLabel" for="myTextbox"  onclick="Actions.raiseAction()">Raise:</label>
             <input type="text" id="myTextbox" name="myTextbox" value="0" oninput="updateSlider()">
+        </div>
+        <div class="action" id="allIn" onclick="Actions.allInAction()" display="none">
+            <p id="allInDisplay">All In</p>
         </div>
         <div class="action" id="check" onclick="Actions.checkcallAction()">
             <p id="checkcallDisplay">Check Call Test</p>
