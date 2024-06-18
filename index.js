@@ -562,6 +562,7 @@ class Hand {
             }
  
             // updates player.money
+            console.log(relevantPots[i], alreadyIn, nextCall);
             player.money -= (relevantPots[i].call - alreadyIn - nextCall);
             player.betThisHand += (relevantPots[i].call - alreadyIn - nextCall);
             player.betThisRound += (relevantPots[i].call - alreadyIn - nextCall);
@@ -633,10 +634,8 @@ class Hand {
             currentPots[0].amount = lbAmount + bbAmount;
             currentPots[0].call = bbAmount;
             currentPots[0].inPlayers[lb.id] = lbAmount;
-            console.log(lb);
             console.log(currentPots[0].inPlayers);
             currentPots[0].inPlayers[bb.id] = bbAmount;
-            console.log(bb);
             console.log(currentPots[0].inPlayers);
         }
 
@@ -685,6 +684,10 @@ class Hand {
                 }
                 largestCallAmount = maxCallPot.call;  
                 this.actionHandler(player);
+                for (let i = 0; i < currentPots.length; i++){
+                    console.log('currenPots[' + i + ']')
+                    console.log(currentPots[i].inPlayers)
+                }
                 var playerAction = await player.promptMove();
                 console.log('currentPots = ' + currentPots, 'LCA = ' + largestCallAmount, 'initial');
                 let tempOrderedCurrentPots = currentPots.sort((a, b) => b.call - a.call);
@@ -711,15 +714,11 @@ class Hand {
                     i++;
                 }
 
-                console.log(relevantPots[0]);
-                console.log(relevantPots[0].inPlayers);
-
-
-                console.log(playerAction);
-                console.log(playerAction[0]);
-                console.log(playerAction[0] == 'fold');
-
-
+                console.log('action = ' + playerAction);
+                for (let i = 0; i < relevantPots.length; i++) {
+                    console.log("relevantPots[" + i + "]");
+                    console.log(relevantPots[i]);
+                }
                 // currentPots[0].call is max call amount
                 if (playerAction[0] == 'raise') {
                     console.log('');
@@ -783,8 +782,7 @@ class Hand {
                     // player.money -= (relevantPots[0].call - player.betThisRound);
                     // player.betThisHand += (relevantPots[0].call - player.betThisRound);
                     // player.betThisRound += (relevantPots[0].call - player.betThisRound);
-                    console.log('hit')
-                    console.log('relevantPots ' + relevantPots[0].amount);
+                    
                     this.callPots(relevantPots, player);
                     // regular check/call                    
                     // player.money -= (currentPots[0].call - player.betThisRound);
@@ -808,6 +806,7 @@ class Hand {
 
                     // }
                     player.allIn = true;
+                    player.inRound = false;
                     let total = player.money;
                     // first handles pots that can be called
                     this.callPots(relevantPots, player);
@@ -866,7 +865,13 @@ class Hand {
                     Frontend.hideCards(player.id)
                 }
                 console.log('final currentPots = ' + currentPots[0].amount, currentPots[0].call, 'final');
-
+                
+            let playersInRound = this.activePlayers.filter(p => p.inRound == true);
+            // in case that second to last player illogically folds before last player
+            if (playersInRound.length == 1) {
+                break
+            }
+        }
         }
         
 
@@ -875,21 +880,14 @@ class Hand {
         for (let cp of currentPots) {
             this.finalPots.push(cp);
         }
-
         
-        currentPots[0].call = 0;
         let playersInRound = this.activePlayers.filter(p => p.inRound == true);
-        console.log('-----------');
-        console.log('# of players in round = ' + playersInRound.length);
         let rankedPlayers = [];
         // handles ending of hand if needed
-
-
-
-
-
-        
+        console.log(playersInRound.length, end);
         // if every player but one is folded
+
+
         if (playersInRound.length <= 1) {
             // shallow copy of active players
             let apCopy = [...this.activePlayers];
@@ -956,7 +954,9 @@ class Hand {
 
             this.active = false;
         }
-        }
+        
+        
+        
     }
 
 
