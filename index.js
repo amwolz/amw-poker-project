@@ -271,6 +271,7 @@ class Player {
         this.name = name;
         this.id = id;
         this.money = 200;
+        this.moneyi = 0;
         this.card1 = ''; 
         this.card2 = '';
         this.active = true;  
@@ -478,13 +479,7 @@ class Hand {
         this.card5 = this.dealtCards.board[4];
         this.active = true;
         this.pot = 0;
-        this.pot2 = 0;
-        this.pot3 = 0;
-        this.pot4 = 0;
         largestCallAmount = 0;
-        this.splitcall1 = 0;
-        this.splitcall2 = 0;
-        this.splitcall3 = 0;
         this.start = null;
         this.finalPots = [];
 
@@ -508,6 +503,7 @@ class Hand {
             p.rank = 0;
             p.finalCards = [];
             p.fold = false;
+            p.moneyi = p.money
         }
         
     }
@@ -557,8 +553,8 @@ class Hand {
                 nextCall = relevantPots[i + 1].call;
             }
             let alreadyIn = 0
-            if (player.id in relevantPots[i].inPlayers) {
-                alreadyIn = relevantPots[i].inPlayers[player.id];
+            if ([player.id] in relevantPots[i].inPlayers) {
+                alreadyIn = relevantPots[i].inPlayers[[player.id]];
             }
  
             // updates player.money
@@ -568,10 +564,11 @@ class Hand {
             player.betThisRound += (relevantPots[i].call - alreadyIn - nextCall);
 
             // updates inPlayers dict
-            relevantPots[i].inPlayers[player.id] = relevantPots[i].call
+            relevantPots[i].inPlayers[[player.id]] = relevantPots[i].call
 
             // contributes correct amount to each pot
             let vals = Object.values(relevantPots[i].inPlayers);
+            let temp = []
             console.log(vals);
             let sum = 0;
             for (let val of vals) {
@@ -775,20 +772,7 @@ class Hand {
                        
                 } else if (playerAction[0] == 'checkcall') {
                     console.log('hit checkcall');
-
-                    
-                    // this could be either a partial call or a regular call
-
-                    // player.money -= (relevantPots[0].call - player.betThisRound);
-                    // player.betThisHand += (relevantPots[0].call - player.betThisRound);
-                    // player.betThisRound += (relevantPots[0].call - player.betThisRound);
-                    
                     this.callPots(relevantPots, player);
-                    // regular check/call                    
-                    // player.money -= (currentPots[0].call - player.betThisRound);
-                    // this.pot += (currentPots[0].call - player.betThisRound);
-                    // player.betThisHand += (currentPots[0].call - player.betThisRound);
-                    // player.betThisRound += (currentPots[0].call - player.betThisRound);
                     this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1]);
                 } else if (playerAction[0] == 'allIn') {
                     console.log('hit allin');
@@ -806,7 +790,6 @@ class Hand {
 
                     // }
                     player.allIn = true;
-                    player.inRound = false;
                     let total = player.money;
                     // first handles pots that can be called
                     this.callPots(relevantPots, player);
@@ -825,7 +808,6 @@ class Hand {
 
                         if (abovePot) {
                             for (let inPlayer in abovePot.inPlayers) {
-                                // let p = this.getPlayerByID(inPlayer);
                                 if (abovePot.inPlayers.inPlayer >= change) {
                                     abovePot.inPlayers.inPlayer -= change;
                                     currentPots[currentPots.length - 1][inPlayers][inPlayer] = change;
@@ -880,14 +862,12 @@ class Hand {
         for (let cp of currentPots) {
             this.finalPots.push(cp);
         }
-        
+    
         let playersInRound = this.activePlayers.filter(p => p.inRound == true);
         let rankedPlayers = [];
         // handles ending of hand if needed
         console.log(playersInRound.length, end);
         // if every player but one is folded
-
-
         if (playersInRound.length <= 1) {
             // shallow copy of active players
             let apCopy = [...this.activePlayers];
@@ -902,14 +882,24 @@ class Hand {
                     rankedPlayers.push(p);
                 }
             }
-
-            rankedPlayers[0].money += currentPots[0].amount;
-            console.log(rankedPlayers[0].betThisHand);
-            rankedPlayers[0].wonThisHand = this.pot - rankedPlayers[0].betThisHand;
+ 
+            rankedPlayers[0].wonThisHand = 0;
 
             for (let rest of rankedPlayers.slice(1)) {
                 rest.wonThisHand = -rest.betThisHand;
+                rankedPlayers[0].wonThisHand += rest.betThisHand;
             }
+
+            rankedPlayers[0].money = rankedPlayers[0].wonThisHand + rankedPlayers[0].moneyi
+            console.log(rankedPlayers[0].wonThisHand)
+
+
+            
+            console.log(rankedPlayers)
+            console.log(rankedPlayers[0].money)
+            console.log(rankedPlayers[0].betThisHand);
+
+
             // assign results to players but don't modify rankings
             this.evaluateHand(rankedPlayers);
 
@@ -932,22 +922,38 @@ class Hand {
             this.evaluateHand(playersInRound);
             // sorts players by rank to display on endDisplay
             let showdownPlayers = playersInRound.sort((a, b) => a.rank - b.rank);
-            // now properly adjusts money and wonThisHand amounts of showdown players
-            let winners = showdownPlayers.filter(item => item.rank == 1);
-            for (let showdownPlayer of showdownPlayers) {
-                if (showdownPlayer.rank == 1) {
-                    showdownPlayer.wonThisHand = Math.round(this.pot / winners.length) - showdownPlayer.betThisHand;
-                    showdownPlayer.money += Math.round(this.pot / winners.length);
-                } else {
-                    showdownPlayer.wonThisHand = - showdownPlayer.betThisHand
+
+            for (let fp of this.finalPots) {
+                if (fp.amount > 0) {
+                    let stillInPlayers = [];
+                    for (let p in fp.inPlayers) {
+                        console.log(p)
+                        stillInPlayers.push(this.getPlayerByID(p))
+                    }
+                    console.log(stillInPlayers);
+                    this.evaluateHand(stillInPlayers);
+                    // now properly adjusts money and wonThisHand amounts of showdown players
+                    let winners = stillInPlayers.filter(item => item.rank == 1);
+                    let tempSum = 0;
+                    for (let stillInPlayer of stillInPlayers) {
+                        if (stillInPlayer.rank !== 1) {
+                            stillInPlayer.wonThisHand = - stillInPlayer.betThisHand
+                            tempSum -= stillInPlayer.wonThisHand 
+                        }
+                    }
+                    for (let stillInPlayer of stillInPlayers) {
+                        if (stillInPlayer.rank == 1) {
+                            stillInPlayer.wonThisHand += Math.round(tempSum / winners.length)
+                            stillInPlayer.money += Math.round(tempSum / winners.length) + stillInPlayer.betThisHand
+
+                        }
+                    }
+
+                    for (let e of [...stillInPlayers, ...others]) {
+                        console.log(e, e.rank);
+                    };
                 }
-            }
-
-            for (let e of [...showdownPlayers, ...others]) {
-                console.log(e, e.rank);
-            };
-
-            console.log(playerQueue);
+            }            
 
             this.endround([...showdownPlayers, ...others]);
             // Distribute Pot
@@ -1013,7 +1019,7 @@ class Hand {
             // sort cards in descending order of rank
             cards.sort((a, b) => b[1] - a[1]);
 
-            cards.forEach(card => console.log(card[0], card[1]))
+            // cards.forEach(card => console.log(card[0], card[1]))
 
             let rankCounts = {};
             let suitCounts = {};
@@ -1022,28 +1028,16 @@ class Hand {
                 suitCounts[card[0]] = (suitCounts[card[0]] || 0) + 1;
             });
 
-
-            console.log(rankCounts);
-            console.log(suitCounts);
-
-
             // [bool(isStraightFlush), [['D', 13], ['D', 10], ..., bool(isFlush)]
             const straightFlush = this.isStraightFlush(cards, suitCounts);
             const isFour = this.isFour(cards, rankCounts);
             const isThreeTwoOneDict = this.isThreeTwoOne(cards, rankCounts);
             const isStraight = this.isStraight(cards)
 
-            console.log('straightFlush ' + straightFlush);
-            console.log('isStraight ' + isStraight);
-            console.log('isFour ' + isFour);
-            console.log('isThreeTwoOneDict ' + isThreeTwoOneDict);
-            for (let key in isThreeTwoOneDict) {
-                console.log(key, isThreeTwoOneDict[key]);
-            }
-            console.log('--------------')
-            console.log(straightFlush[1][0], straightFlush[1][1])
+            // for (let key in isThreeTwoOneDict) {
+            //     console.log(key, isThreeTwoOneDict[key]);
+            // }
 
-            console.log('rankCounts' + rankCounts);
             if (straightFlush[0] && straightFlush[1][0][1] == 14) {
                 baskets['RF'].push(player);
                 player.finalCards = [0, 0, 0, 0, 0];
@@ -1104,7 +1098,7 @@ class Hand {
         // this ranks each basket and accounts for ties too
         // each nonempty basket will now be a nested array, with each element of subarray
         // representing a ranking of the basket. if two players are in the same subarray, they are tied
-        console.log(baskets)
+        // console.log(baskets)
         this.handlebaskets(baskets);
        
     }
@@ -1126,27 +1120,27 @@ class Hand {
                 i++;
                 console.log(baskets[key][0], baskets[key][0].rank);
             } else if (baskets[key].length > 1) {
-                console.log(baskets[key]);
+                // console.log(baskets[key]);
                 baskets[key].sort((a, b) => b.finalCards[0] - a.finalCards[0] + 0.01 * (b.finalCards[1] - a.finalCards[1]) +
                             0.0001 * (b.finalCards[2] - a.finalCards[2] +  0.000001 * (b.finalCards[3] - a.finalCards[3])) +
                             0.00000001 * (b.finalCards[4] - a.finalCards[4]));
-                console.log(baskets[key]);
+                // console.log(baskets[key]);
 
-                for (let e of baskets[key]) {
-                    console.log(e);
-                    console.log(e.finalCards);
-                }
+                // for (let e of baskets[key]) {
+                //     console.log(e);
+                //     console.log(e.finalCards);
+                // }
 
                 for (let j = 0; j < baskets[key].length;) {
                     baskets[key][j].rank = i;
-                    console.log('a')
+                    // console.log('a')
                     let ties = 0;
                     for (let k = j + 1; k < baskets[key].length;) {
-                        console.log('b')
-                        console.log(baskets[key][j].finalCards);
-                        console.log(baskets[key][k].finalCards);
+                        // console.log('b')
+                        // console.log(baskets[key][j].finalCards);
+                        // console.log(baskets[key][k].finalCards);
                         if (arraysAreEqual(baskets[key][j].finalCards, baskets[key][k].finalCards)) {
-                            console.log('c')
+                            // console.log('c')
                             baskets[key][k].rank = i;
                             j++;
                             k++;
@@ -1162,10 +1156,10 @@ class Hand {
             }
         }
 
-        for (let p of players) {
-            console.log(p);
-            console.log(p.rank);
-        }
+        // for (let p of players) {
+        //     console.log(p);
+        //     console.log(p.rank);
+        // }
 
     }
 
