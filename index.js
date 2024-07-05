@@ -543,6 +543,7 @@ class Hand {
 
     callPots(relevantPots, player) {
         // acts as a call on one or more pots, relevantPots
+        console.log(relevantPots)
         for (let i = 0; i < relevantPots.length; i++) {
             let nextCall;
             if (i == relevantPots.length - 1) {
@@ -700,12 +701,14 @@ class Hand {
                 for (let pot of tempOrderedCurrentPots) {
                     if (pot.call <= player.money + player.betThisRound) {
                         maxPossiblePot = pot;
-                        relevantPots = tempOrderedCurrentPots.slice(i);
                         if (i > 0) {
                             abovePot = tempOrderedCurrentPots[i - 1];
+                            relevantPots = tempOrderedCurrentPots.slice(i - 1)
                         } else {
                             abovePot = false;
+                            relevantPots = tempOrderedCurrentPots
                         }
+                        break
                     } 
                     i++;
                 }
@@ -779,20 +782,9 @@ class Hand {
                     this.callPots(relevantPots, player);
                     this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1]);
                 } else if (playerAction[0] == 'allIn') {
-                    console.log('hit allin');
+                    console.log('hit allIn');
                     console.log(currentPots)
 
-                    // if (playerAction[1] == 'call') {
-                    //     // all in on a partial call or call
-                    //     // the call must be the largest call the player can call
-                    //     this.callPots(relevantPots, player);
-                    //     if (player in activePot.inPlayers) {
-                            
-                    //     }
-                        
-
-                    // } else if (playerAction[1] == 'raise') {
-                    //     // all in on a raise
 
                     // }
                     player.allIn = true;
@@ -802,9 +794,12 @@ class Hand {
 
                     // change is money leftover from highest possible call
                     let change = player.money;
+                    console.log(change)
                     player.money = 0;
+                    // let largestCall = relevantPots[0].call;
 
                     if (change > 0) {
+                        // this is a raise
                         // create new pot bc player is all in
                         currentPots.push({amount : change,
                         call : total,
@@ -815,10 +810,15 @@ class Hand {
                         console.log(currentPots)
                         if (abovePot) {
                             for (let inPlayer in abovePot.inPlayers) {
-                                if (abovePot.inPlayers.inPlayer >= change) {
-                                    abovePot.inPlayers.inPlayer -= change;
+                                console.log(abovePot.inPlayers[inPlayer])
+                                if (abovePot.inPlayers[[inPlayer]] >= change) {
+                                    console.log(abovePot)
+                                    console.log(...currentPots)
+                                    abovePot.inPlayers[[inPlayer]] -= change;
                                     abovePot.amount -= change;
                                     currentPots[currentPots.length - 1].inPlayers[[inPlayer]] = change;
+                                    console.log(abovePot)
+                                    console.log(...currentPots)
 
                                 } else {
                                     // hope this doesn't happen for now
@@ -837,13 +837,14 @@ class Hand {
                             for (let val of vals) {
                                 sum += val;
                             }
-                            console.log(sum)
-                            console.log(vals)
+
                             currentPots[i].amount = sum;
                             i++;
                         }
                         console.log(currentPots)
-                    }            
+                    } else {
+
+                    }           
 
 
 
