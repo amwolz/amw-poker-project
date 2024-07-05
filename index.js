@@ -266,11 +266,11 @@ class Frontend{
 }
 
 class Player {
-    constructor(robot, name, id, imgURL) {
+    constructor(robot, name, id, imgURL, money=200) {
         this.isrobot = robot;
         this.name = name;
         this.id = id;
-        this.money = 200;
+        this.money = money;
         this.moneyi = 0;
         this.card1 = ''; 
         this.card2 = '';
@@ -645,6 +645,8 @@ class Hand {
             let pInRound = this.activePlayers.filter(p => p.inRound == true);
  
             if (player.inRound && player.allIn == false && pInRound.length > 1) {
+                console.log(currentPots)
+                
                 // playerAction will be a type array with information about user's action
                 // playerAction will modify player's information in the Player Class, and
                 // will modify game information here below
@@ -681,12 +683,9 @@ class Hand {
                 }
                 largestCallAmount = maxCallPot.call;  
                 this.actionHandler(player);
-                for (let i = 0; i < currentPots.length; i++){
-                    console.log('currenPots[' + i + ']')
-                    console.log(currentPots[i].inPlayers)
-                }
+                
                 var playerAction = await player.promptMove();
-                console.log('currentPots = ' + currentPots, 'LCA = ' + largestCallAmount, 'initial');
+                console.log(currentPots);
                 let tempOrderedCurrentPots = currentPots.sort((a, b) => b.call - a.call);
 
                 let maxPossiblePot = {amount: 0,
@@ -716,9 +715,10 @@ class Hand {
                     console.log("relevantPots[" + i + "]");
                     console.log(relevantPots[i]);
                 }
+                console.log(currentPots)
                 // currentPots[0].call is max call amount
                 if (playerAction[0] == 'raise') {
-                    console.log('');
+                    console.log('hit raise');
 
                     let raiseAmount = parseInt(playerAction[1]);
 
@@ -732,8 +732,12 @@ class Hand {
                     // standard raise, not all in
                     if (activePot) {
                         // contribute to activePot
+                        console.log(activePot)
                         activePot.call += raiseAmount;
                         activePot.amount += raiseAmount;
+                        activePot.inPlayers[[player.id]] += raiseAmount;
+                        console.log(activePot) 
+                        console.log(raiseAmount)
                     } else {
                         // all pots have fixed calls, all pots have an all in player
                         // create new pot
@@ -776,6 +780,8 @@ class Hand {
                     this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1]);
                 } else if (playerAction[0] == 'allIn') {
                     console.log('hit allin');
+                    console.log(currentPots)
+
                     // if (playerAction[1] == 'call') {
                     //     // all in on a partial call or call
                     //     // the call must be the largest call the player can call
@@ -796,6 +802,7 @@ class Hand {
 
                     // change is money leftover from highest possible call
                     let change = player.money;
+                    player.money = 0;
 
                     if (change > 0) {
                         // create new pot bc player is all in
@@ -803,14 +810,15 @@ class Hand {
                         call : total,
                         id: 0,
                         inPlayers: {[player.id] : change},
-                        active: true
+                        active: false
                         });
-
+                        console.log(currentPots)
                         if (abovePot) {
                             for (let inPlayer in abovePot.inPlayers) {
                                 if (abovePot.inPlayers.inPlayer >= change) {
                                     abovePot.inPlayers.inPlayer -= change;
-                                    currentPots[currentPots.length - 1][inPlayers][inPlayer] = change;
+                                    abovePot.amount -= change;
+                                    currentPots[currentPots.length - 1].inPlayers[[inPlayer]] = change;
 
                                 } else {
                                     // hope this doesn't happen for now
@@ -824,14 +832,17 @@ class Hand {
                         // update amounts
                         let i = 0;
                         for (let pot of currentPots) {
-                            let vals = Object.values(currentPots[i]);
+                            let vals = Object.values(currentPots[i].inPlayers);
                             let sum = 0;
                             for (let val of vals) {
                                 sum += val;
                             }
-                            currentPots[i][amount] = sum;
+                            console.log(sum)
+                            console.log(vals)
+                            currentPots[i].amount = sum;
                             i++;
                         }
+                        console.log(currentPots)
                     }            
 
 
@@ -886,7 +897,7 @@ class Hand {
             rankedPlayers[0].wonThisHand = 0;
 
             for (let rest of rankedPlayers.slice(1)) {
-                rest.wonThisHand = -rest.betThisHand;
+                rest.wonThisHand = rest.money - rest.moneyi;
                 rankedPlayers[0].wonThisHand += rest.betThisHand;
             }
 
@@ -903,55 +914,64 @@ class Hand {
             // assign results to players but don't modify rankings
             this.evaluateHand(rankedPlayers);
 
+            rankedPlayers = [rankedPlayers[0], ...rankedPlayers.slice(1).sort((a, b) => a.rank - b.rank)];
+
             this.endround(rankedPlayers);
             this.active = false;
         } else if (end == true) {
+            console.log('end hit');
+        
+            for (let fp of this.finalPots){
+                console.log(fp)
+                console.log(fp.inPlayers)
+            }
             // first handle folded players
             let others = [];
+            let showdownPlayers = [];
             for (let other of this.activePlayers) {
                 if (!playersInRound.includes(other)) {
                     others.push(other);
-                    other.wonThisHand = - other.betThisHand;
+                    other.wonThisHand = other.moneyi - other.money;
+                } else {
+                    showdownPlayers.push(other)
                 }
             }
             this.evaluateHand(others);
             others = others.sort((a, b) => a.rank - b.rank);
+            console.log(others);
+            this.evaluateHand(showdownPlayers);
+            showdownPlayers = showdownPlayers.sort((a, b) => a.rank - b.rank);
+            console.log(showdownPlayers);
 
             // then handle players at showdown
-            // ranks players
-            this.evaluateHand(playersInRound);
-            // sorts players by rank to display on endDisplay
-            let showdownPlayers = playersInRound.sort((a, b) => a.rank - b.rank);
 
             for (let fp of this.finalPots) {
                 if (fp.amount > 0) {
+                    // for (let p of this.activePlayers){
+                    //     console.log(p, p.money)
+                    // }
                     let stillInPlayers = [];
                     for (let p in fp.inPlayers) {
-                        console.log(p)
-                        stillInPlayers.push(this.getPlayerByID(p))
+                        if (this.getPlayerByID(p).inRound){
+                            stillInPlayers.push(this.getPlayerByID(p))
+                        }
                     }
                     console.log(stillInPlayers);
                     this.evaluateHand(stillInPlayers);
-                    // now properly adjusts money and wonThisHand amounts of showdown players
+
                     let winners = stillInPlayers.filter(item => item.rank == 1);
-                    let tempSum = 0;
-                    for (let stillInPlayer of stillInPlayers) {
-                        if (stillInPlayer.rank !== 1) {
-                            stillInPlayer.wonThisHand = - stillInPlayer.betThisHand
-                            tempSum -= stillInPlayer.wonThisHand 
-                        }
-                    }
-                    for (let stillInPlayer of stillInPlayers) {
-                        if (stillInPlayer.rank == 1) {
-                            stillInPlayer.wonThisHand += Math.round(tempSum / winners.length)
-                            stillInPlayer.money += Math.round(tempSum / winners.length) + stillInPlayer.betThisHand
 
-                        }
-                    }
+                    // now properly adjusts money and wonThisHand amounts of showdown players
 
-                    for (let e of [...stillInPlayers, ...others]) {
-                        console.log(e, e.rank);
-                    };
+                    for (let sip of stillInPlayers){
+                        if (sip.rank == 1){
+                            sip.money += Math.round(fp.amount / winners.length);
+                            // sip.wonThisHand += Math.round((fp.amount) / winners.length);
+                        } else {
+                            sip.wonThisHand -= fp.inPlayers[[sip.id]];
+                        }
+
+                    }
                 }
             }            
 
@@ -981,7 +1001,7 @@ class Hand {
             displayPots.push(pot.amount);
             displayCalls.push(pot.call);
         }
-        return [...displayPots, ...displayCalls];
+        return [[...displayPots],  [...displayCalls]];
     }
     
     evaluateHand(players) {
@@ -1316,7 +1336,9 @@ class Hand {
    
 
     endround(playerArr) {
-        console.log(playerArr)
+        for (let p of players) {
+            p.wonThisHand = p.money - p.moneyi
+        }
         for (let j = 0; j < 5; j++) {
             // display board
             Frontend.changeImage('ec' + (j + 1).toString(), Utils.translateCard(this.dealtCards.board[j]));
@@ -1422,11 +1444,11 @@ function main() {
     // Frontend.hideDiv("cardContainer")
     // Frontend.changeImage("card1Image", "images/cards/clubs_2.png")
     
-    p1 = new Player(false, username, 'p1', charSelect);
-    p2 = new Player(false, "Stephen", 'p2', 'images/player2.png');
-    p3 = new Player(false, "Alyssa", 'p3', 'images/player3.png');
-    p4 = new Player(false, "Eric", 'p4', 'images/player4.png');
-    p5 = new Player(false, "Alex", 'p5', 'images/player5.png');
+    p1 = new Player(false, username, 'p1', charSelect, money=502);
+    p2 = new Player(false, "Stephen", 'p2', 'images/player2.png', money=302);
+    p3 = new Player(false, "Alyssa", 'p3', 'images/player3.png', money=402);
+    p4 = new Player(false, "Eric", 'p4', 'images/player4.png', money=202);
+    p5 = new Player(false, "Alex", 'p5', 'images/player5.png', money=102);
 
     players = [p1, p3, p2, p5, p4];
 
