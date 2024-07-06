@@ -478,6 +478,7 @@ class Hand {
         this.card4 = this.dealtCards.board[3];
         this.card5 = this.dealtCards.board[4];
         this.active = true;
+        this.totalVar = 0;
         this.pot = 0;
         largestCallAmount = 0;
         this.start = null;
@@ -638,11 +639,13 @@ class Hand {
         }
 
 
+
         // players' turns
         while (playerQueue.length > 0) {
             let player = playerQueue.shift();
+            console.log(this.totalVar)
             
-            this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1]);
+            this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1], this.totalVar=this.totalVar);
             let pInRound = this.activePlayers.filter(p => p.inRound == true);
  
             if (player.inRound && player.allIn == false && pInRound.length > 1) {
@@ -703,7 +706,7 @@ class Hand {
                         maxPossiblePot = pot;
                         if (i > 0) {
                             abovePot = tempOrderedCurrentPots[i - 1];
-                            relevantPots = tempOrderedCurrentPots.slice(i - 1)
+                            relevantPots = tempOrderedCurrentPots.slice(i)
                         } else {
                             abovePot = false;
                             relevantPots = tempOrderedCurrentPots
@@ -762,7 +765,7 @@ class Hand {
 
                     // currentPots[0].call += raiseAmount;
 
-                    this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1]);
+                    this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1], this.totalVar=this.totalVar);
                     
                     let index = orderedPlayers.indexOf(player);
                     let preceding = orderedPlayers.slice(0, index);
@@ -779,11 +782,14 @@ class Hand {
                        
                 } else if (playerAction[0] == 'checkcall') {
                     console.log('hit checkcall');
+                    console.log(currentPots);
+                    console.log(relevantPots);
                     this.callPots(relevantPots, player);
-                    this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1]);
+                    this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1], this.totalVar=this.totalVar);
                 } else if (playerAction[0] == 'allIn') {
                     console.log('hit allIn');
-                    console.log(currentPots)
+                    console.log(currentPots);
+                    console.log(relevantPots);
 
 
                     // }
@@ -841,14 +847,27 @@ class Hand {
                             currentPots[i].amount = sum;
                             i++;
                         }
+                        // bc it is a raise, queues rest of players
                         console.log(currentPots)
+                        let index = orderedPlayers.indexOf(player);
+                        let preceding = orderedPlayers.slice(0, index);
+                        let succeeding = orderedPlayers.slice(index + 1);
+
+                        // update playerQueue to ensure every player has a chance to match the bet
+                        for (let additional of succeeding.concat(preceding)) {
+                            if (additional.inRound) {
+                                if (playerQueue.includes(additional) == false) {
+                                    playerQueue.push(additional);
+                                }
+                            }
+                        }
                     } else {
 
                     }           
 
 
 
-                    this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1]);
+                    this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1], total=total);
 
 
 
@@ -858,7 +877,7 @@ class Hand {
                     player.inRound = false;
                     Frontend.hideCards(player.id)
                 }
-                console.log('final currentPots = ' + currentPots[0].amount, currentPots[0].call, 'final');
+                console.log(currentPots);
                 
             let playersInRound = this.activePlayers.filter(p => p.inRound == true);
             // in case that second to last player illogically folds before last player
@@ -873,7 +892,9 @@ class Hand {
         // so finalPots could have as many as 9 pots
         for (let cp of currentPots) {
             this.finalPots.push(cp);
+            this.totalVar += cp.amount
         }
+
     
         let playersInRound = this.activePlayers.filter(p => p.inRound == true);
         let rankedPlayers = [];
@@ -1400,12 +1421,13 @@ class Hand {
             Frontend.hideDiv('allIn');
         }
     }
-    updateFrontend(player, currentPots=this.pot, calls=largestCallAmount) {
+    updateFrontend(player, currentPots=this.pot, calls=largestCallAmount, total=0) {
         
         Frontend.changeTextContent('potAmount', currentPots)
         Frontend.changeTextContent('roundInfoParagraph', calls)
         Frontend.changeTextContent(player.id + 'p1', player.money)
         Frontend.changeTextContent(player.id + 'p2', player.betThisRound);
+        Frontend.changeTextContent('total', total)
     }
         
 
