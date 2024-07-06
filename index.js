@@ -427,6 +427,15 @@ class Hand {
     constructor(littleBlind=0, testBoard = []) {
         this.littleBlind = littleBlind
         this.activePlayers = players.filter(player => player.active === true);
+        for (let ap of this.activePlayers) {
+            if (ap.money <= 0) {
+                ap.active = false;
+                Frontend.hideCards(ap.id)
+                Frontend.hideBlinds(ap.id)
+            }
+        }
+        this.activePlayers = players.filter(player => player.active === true);
+
         console.log(this.activePlayers + ' activePlayers')
         
         if (testBoard.length > 0) {
@@ -1343,6 +1352,13 @@ class Hand {
             Frontend.changeTextContent("r" + (i + 1).toString() + "p3", '$' + playerArr[i].money.toString());
 
 
+        }
+
+        if (playerArr.length < 5) {
+            let difference = 5 - playerArr.length
+            for (let i = 1; i <= difference; i++) {
+                Frontend.hideDiv('r' + (6 - i).toString())
+            } 
         }
 
         Frontend.showDiv('endDisplay');
