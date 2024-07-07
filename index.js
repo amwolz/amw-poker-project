@@ -141,6 +141,7 @@ function closeEndContent() {
 var userResponse = false;
 var playerInTurn;
 var largestCallAmount;
+let activePlayers = []
 const lbAmount = 1;
 const bbAmount = 2;
 
@@ -487,8 +488,8 @@ class Hand {
         let end;
         this.active = true;
         this.bootHand();
-        Frontend.showSB(players[this.littleBlind].id);
-        Frontend.showBB(players[(this.littleBlind + 1) % players.length].id);
+        Frontend.showSB(this.activePlayers[this.littleBlind % this.activePlayers.length].id);
+        Frontend.showBB(this.activePlayers[(this.littleBlind + 1) % this.activePlayers.length].id);
 
         await this.bettingRound(['back', 'back', 'back', 'back', 'back'], this.activePlayers, this.littleBlind, start=true);
         if (this.active) {
@@ -502,8 +503,8 @@ class Hand {
         }
 
 
-        Frontend.hideBlinds(players[this.littleBlind].id);
-        Frontend.hideBlinds(players[(this.littleBlind + 1) % this.activePlayers.length].id);
+        Frontend.hideBlinds(this.activePlayers[this.littleBlind % this.activePlayers.length].id);
+        Frontend.hideBlinds(this.activePlayers[(this.littleBlind + 1) % this.activePlayers.length].id);
 
     }
 
@@ -1402,20 +1403,26 @@ class Hand {
 
 class Orbit {
     constructor() {
-
-
+        this.activePlayers = players.filter(player => player.active === true)
     }
     async initialize() {
         let i = 0;
-        for (let player of players) {
+        while (this.activePlayers.length > 1) {
             let hand = new Hand(i);
+            this.activePlayers = hand.activePlayers;
+
             await hand.initialize();
             // this shifts the blind
             i++;
+        }        
+        if (this.activePlayers[0].id == "p1") {
+            Frontend.changeTextContent("winner-name", "You")
         }
-
-
+        else {
+            Frontend.changeTextContent("winner-name", this.activePlayers[0].name)
+        }
         
+        Frontend.showDiv("winnerContainer")
     }
 
 }
@@ -1433,11 +1440,11 @@ function main() {
     // Frontend.hideDiv("cardContainer")
     // Frontend.changeImage("card1Image", "images/cards/clubs_2.png")
     
-    p1 = new Player(false, username, 'p1', charSelect, money=102);
+    p1 = new Player(false, username, 'p1', charSelect, money=502);
     p2 = new Player(false, "Stephen", 'p2', 'images/player2.png', money=302);
-    p3 = new Player(false, "Alyssa", 'p3', 'images/player3.png', money=202);
-    p4 = new Player(false, "Eric", 'p4', 'images/player4.png', money=502);
-    p5 = new Player(false, "Alex", 'p5', 'images/player5.png', money=402);
+    p3 = new Player(false, "Alyssa", 'p3', 'images/player3.png', money=402);
+    p4 = new Player(false, "Eric", 'p4', 'images/player4.png', money=102);
+    p5 = new Player(false, "Alex", 'p5', 'images/player5.png', money=202);
 
     players = [p1, p3, p2, p5, p4];
 
