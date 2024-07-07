@@ -980,8 +980,10 @@ class Hand {
         let displayPots = [];
         let displayCalls = [];
         for (let pot of cp) {
-            displayPots.push(pot.amount);
-            displayCalls.push(pot.call);
+            if (pot.amount != 0) {
+                displayPots.push(pot.amount);
+                displayCalls.push(pot.call);
+            }
         }
         return [[...displayPots],  [...displayCalls]];
     }
