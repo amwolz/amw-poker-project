@@ -668,7 +668,7 @@ class Hand {
                 }
                 largestCallAmount = maxCallPot.call;  
                 this.actionHandler(player);
-                
+                console.log(currentPots)
                 var playerAction = await player.promptMove();
                 let tempOrderedCurrentPots = currentPots.sort((a, b) => b.call - a.call);
 
@@ -681,6 +681,7 @@ class Hand {
                 let relevantPots = [];
                 let abovePot = false;
                 let i = 0;
+                console.log(tempOrderedCurrentPots)
                 for (let pot of tempOrderedCurrentPots) {
                     if (pot.call <= player.money + player.betThisRound) {
                         maxPossiblePot = pot;
@@ -695,6 +696,14 @@ class Hand {
                     } 
                     i++;
                 }
+                for (let pot of tempOrderedCurrentPots) {
+                    if (pot.call > player.money + player.betThisRound) {
+                        abovePot = pot
+                    }
+                }
+                console.log("abovePot")
+                console.log(abovePot)
+
 
                 // currentPots[0].call is max call amount
                 if (playerAction[0] == 'raise') {
@@ -778,7 +787,7 @@ class Hand {
                     player.money = 0;
                     // let largestCall = relevantPots[0].call;
 
-                    if (change > 0) {
+                    if (change >= 0) {
                         // this is a raise
                         // create new pot bc player is all in
                         currentPots.push({amount : change,
@@ -788,6 +797,7 @@ class Hand {
                         active: false
                         });
                         console.log(currentPots)
+                        console.log(abovePot)
                         if (abovePot) {
                             for (let inPlayer in abovePot.inPlayers) {
                                 console.log(abovePot.inPlayers[inPlayer])
@@ -834,6 +844,7 @@ class Hand {
                             }
                         }
                     } else {
+
 
                     }           
 
@@ -979,12 +990,19 @@ class Hand {
     handleCP(cp) {
         let displayPots = [];
         let displayCalls = [];
-        for (let pot of cp) {
-            if (pot.amount != 0) {
-                displayPots.push(pot.amount);
-                displayCalls.push(pot.call);
+        if (cp.length == 1) {
+            displayPots.push(cp[0].amount);
+            displayCalls.push(cp[0].call);
+        }
+        else {
+            for (let pot of cp) {
+                if (pot.amount != 0) {
+                    displayPots.push(pot.amount);
+                    displayCalls.push(pot.call);
+                }
             }
         }
+        
         return [[...displayPots],  [...displayCalls]];
     }
     
