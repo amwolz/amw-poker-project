@@ -392,7 +392,7 @@ body{
     top: -330px;
     z-index: 10;
     font-size: 5em;
-    color: rgb(166, 0, 166);
+    color: goldenrod;
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -444,3 +444,14 @@ body {
 #winnerContainer {
     display: None;
 }
+
+.actionDisplay {
+    position: absolute;
+    top: 30px;
+    font-size: larger;
+    z-index: 100;
+    color: white;
+    display: block;
+    display: None;
+}
+

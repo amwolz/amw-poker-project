@@ -628,6 +628,7 @@ class Hand {
             
             this.updateFrontend(player, this.handleCP(currentPots)[0], this.handleCP(currentPots)[1], this.totalVar=this.totalVar);
             let pInRound = this.activePlayers.filter(p => p.inRound == true);
+            this.evaluateHand(pInRound);
  
             if (player.inRound && player.allIn == false && pInRound.length > 1) {
                 console.log(currentPots)
@@ -669,8 +670,16 @@ class Hand {
                 largestCallAmount = maxCallPot.call;  
                 this.actionHandler(player);
                 console.log(currentPots)
-                var playerAction = await player.promptMove();
                 let tempOrderedCurrentPots = currentPots.sort((a, b) => b.call - a.call);
+
+                var playerAction
+                // var playerAction = await player.promptMove();
+                if (player.id == "p1") {
+                    playerAction = await player.promptMove();
+                } else if (player.money > 0) {
+                    playerAction = await this.cpuMove(player, this.getPlayerByID("p1"), tempOrderedCurrentPots[0].call);
+                }
+                tempOrderedCurrentPots = currentPots.sort((a, b) => b.call - a.call);
 
                 let maxPossiblePot = {amount: 0,
                     call: 0,
@@ -701,9 +710,6 @@ class Hand {
                         abovePot = pot
                     }
                 }
-                console.log("abovePot")
-                console.log(abovePot)
-
 
                 // currentPots[0].call is max call amount
                 if (playerAction[0] == 'raise') {
@@ -775,7 +781,6 @@ class Hand {
                     console.log(relevantPots);
 
 
-                    // }
                     player.allIn = true;
                     let total = player.money;
                     // first handles pots that can be called
@@ -787,7 +792,7 @@ class Hand {
                     player.money = 0;
                     // let largestCall = relevantPots[0].call;
 
-                    if (change >= 0) {
+                    if (change > 0) {
                         // this is a raise
                         // create new pot bc player is all in
                         currentPots.push({amount : change,
@@ -805,11 +810,7 @@ class Hand {
                                     abovePot.inPlayers[[inPlayer]] -= change;
                                     abovePot.amount -= change;
                                     currentPots[currentPots.length - 1].inPlayers[[inPlayer]] = change;
-
-                                } else {
-                                    // hope this doesn't happen for now
-
-                                }
+                                } 
                             }
                         } else {
                             // no further action needed. This pot has the max call
@@ -1004,6 +1005,105 @@ class Hand {
         }
         
         return [[...displayPots],  [...displayCalls]];
+    }
+
+    async cpuMove(player, human, currentCall=0) {
+        // 3 scenarios, currentCall is above what player can call (all in is only option)
+        // currentCall can be called, all in, raise, call, fold
+        // call is 0 all in, raise, call
+        let randNum = Math.random();
+        let playerAction;
+        let allInThreshold;
+        let raiseThreshold;
+        let callThreshold;
+        let foldThreshold;
+        await this.delay(1000);
+        if (currentCall >= player.money + player.betThisHand) {
+            allInThreshold = 0.3
+            if (human.rank > player.rank) {
+                allInThreshold += 0.2
+            }
+            if (randNum > allInThreshold) {
+                playerAction = ["allIn", player.money]
+            } else {
+                playerAction = ["fold", 0]
+            }
+        } else if (currentCall == 0) {
+            if (player.rank < 3) {
+                raiseThreshold = 0.4
+            } else {
+                raiseThreshold = 0.15
+            }
+            allInThreshold = 0.95
+            if (randNum > allInThreshold) {
+                playerAction = ["allIn", player.money]
+            } else if (randNum > raiseThreshold) {
+                if (randNum > 0.8) {
+                    playerAction = ["raise", Math.ceil(player.money * 0.4)]
+                } else {                
+                    playerAction = ["raise", Math.ceil(player.money * 0.1)]
+                }
+            } else {
+                playerAction = ["checkcall", 0]
+            }
+        } else {
+            if (player.rank < human.rank) {
+                allInThreshold = 0.95
+                raiseThreshold = 0.75
+                callThreshold = 0.1
+                if (randNum > allInThreshold) {
+                    playerAction = ["allIn", player.money]
+                } else if (randNum > raiseThreshold) {
+                    playerAction = ["raise", Math.ceil((player.money - currentCall) * 0.2)]
+                } else if (randNum > callThreshold) {
+                    playerAction = ["checkcall", 0]
+                } else {
+                    playerAction = ["fold", 0]
+                }
+            } else {
+                allInThreshold = 0.98
+                raiseThreshold = 0.85
+                callThreshold = 0.5
+                if (randNum > allInThreshold) {
+                    playerAction = ["allIn", player.money]
+                } else if (randNum > raiseThreshold) {
+                    playerAction = ["raise", Math.ceil((player.money - currentCall) * 0.2)]
+                } else if (randNum > callThreshold) {
+                    playerAction = ["checkcall", 0]
+                } else {
+                    playerAction = ["fold", 0]
+                }
+
+            }
+        }
+        this.showAction(player, playerAction)
+        await this.delay(1000);
+        Frontend.hideDiv(player.id + "action")
+        return playerAction
+    }
+
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    showAction(p, action) {
+        if (action[0] == "checkcall") {
+            Frontend.changeTextContent(p.id + "action", "Check")
+            Frontend.changeParagraphColor(p.id + "action", "green")
+            Frontend.showDiv(p.id + "action")
+        } else if (action[0] == "raise") {
+            Frontend.changeTextContent(p.id + "action", "Raise " + action[1].toString())
+            Frontend.changeParagraphColor(p.id + "action", "yellow")
+            Frontend.showDiv(p.id + "action")
+        } else if (action[0] == "allIn") {
+            Frontend.changeTextContent(p.id + "action", "All In! " + p.money.toString())
+            Frontend.changeParagraphColor(p.id + "action", "yellow")
+            Frontend.showDiv(p.id + "action")
+        } else if (action[0] == "fold") {
+            Frontend.changeTextContent(p.id + "action", "Fold!")
+            Frontend.changeParagraphColor(p.id + "action", "red")
+            Frontend.showDiv(p.id + "action")
+        }
     }
     
     evaluateHand(players) {
@@ -1432,6 +1532,7 @@ class Orbit {
             this.activePlayers = hand.activePlayers;
 
             await hand.initialize();
+            await closeEndContent();
             // this shifts the blind
             i++;
         }        
@@ -1460,11 +1561,11 @@ function main() {
     // Frontend.hideDiv("cardContainer")
     // Frontend.changeImage("card1Image", "images/cards/clubs_2.png")
     
-    p1 = new Player(false, username, 'p1', charSelect, money=502);
-    p2 = new Player(false, "Stephen", 'p2', 'images/player2.png', money=302);
-    p3 = new Player(false, "Alyssa", 'p3', 'images/player3.png', money=402);
-    p4 = new Player(false, "Eric", 'p4', 'images/player4.png', money=102);
-    p5 = new Player(false, "Alex", 'p5', 'images/player5.png', money=202);
+    p1 = new Player(false, username, 'p1', charSelect, money=200);
+    p2 = new Player(false, "Stephen", 'p2', 'images/player2.png', money=200);
+    p3 = new Player(false, "Alyssa", 'p3', 'images/player3.png', money=200);
+    p4 = new Player(false, "Eric", 'p4', 'images/player4.png', money=200);
+    p5 = new Player(false, "Alex", 'p5', 'images/player5.png', money=200);
 
     players = [p1, p3, p2, p5, p4];
 
