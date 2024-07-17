@@ -115,7 +115,7 @@ function updateSlider() {
     }
 }
 
-function closeEndContent() {
+async function closeEndContent() {
     document.getElementById('endDisplay').style.display = 'none';
 }
 
@@ -1036,25 +1036,25 @@ class Hand {
             }
             allInThreshold = 0.95
             if (randNum > allInThreshold) {
-                playerAction = ["allIn", player.money]
+                playerAction = ["allIn", player.money, "check"]
             } else if (randNum > raiseThreshold) {
                 if (randNum > 0.8) {
-                    playerAction = ["raise", Math.ceil(player.money * 0.4)]
+                    playerAction = ["raise", Math.ceil(player.money * 0.4), "check"]
                 } else {                
-                    playerAction = ["raise", Math.ceil(player.money * 0.1)]
+                    playerAction = ["raise", Math.ceil(player.money * 0.1), "check"]
                 }
             } else {
-                playerAction = ["checkcall", 0]
+                playerAction = ["checkcall", 0, "check"]
             }
         } else {
             if (player.rank < human.rank) {
                 allInThreshold = 0.95
-                raiseThreshold = 0.75
+                raiseThreshold = 0.8
                 callThreshold = 0.1
                 if (randNum > allInThreshold) {
                     playerAction = ["allIn", player.money]
                 } else if (randNum > raiseThreshold) {
-                    playerAction = ["raise", Math.ceil((player.money - currentCall) * 0.2)]
+                    playerAction = ["raise", Math.ceil((player.money + player.betThisRound - currentCall) * 0.2)]
                 } else if (randNum > callThreshold) {
                     playerAction = ["checkcall", 0]
                 } else {
@@ -1067,7 +1067,7 @@ class Hand {
                 if (randNum > allInThreshold) {
                     playerAction = ["allIn", player.money]
                 } else if (randNum > raiseThreshold) {
-                    playerAction = ["raise", Math.ceil((player.money - currentCall) * 0.2)]
+                    playerAction = ["raise", Math.ceil((player.money + player.betThisHand - currentCall) * 0.2)]
                 } else if (randNum > callThreshold) {
                     playerAction = ["checkcall", 0]
                 } else {
@@ -1076,6 +1076,7 @@ class Hand {
 
             }
         }
+        console.log(playerAction)
         this.showAction(player, playerAction)
         await this.delay(1000);
         Frontend.hideDiv(player.id + "action")
@@ -1087,8 +1088,12 @@ class Hand {
     }
 
     showAction(p, action) {
-        if (action[0] == "checkcall") {
+        if (action.length > 2) {
             Frontend.changeTextContent(p.id + "action", "Check")
+            Frontend.changeParagraphColor(p.id + "action", "green")
+            Frontend.showDiv(p.id + "action")
+        } else if (action[0] == "checkcall") {
+            Frontend.changeTextContent(p.id + "action", "Call")
             Frontend.changeParagraphColor(p.id + "action", "green")
             Frontend.showDiv(p.id + "action")
         } else if (action[0] == "raise") {
@@ -1532,7 +1537,6 @@ class Orbit {
             this.activePlayers = hand.activePlayers;
 
             await hand.initialize();
-            await closeEndContent();
             // this shifts the blind
             i++;
         }        
