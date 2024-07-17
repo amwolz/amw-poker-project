@@ -782,7 +782,7 @@ class Hand {
 
 
                     player.allIn = true;
-                    let total = player.money;
+                    let total = player.money + player.betThisHand;
                     // first handles pots that can be called
                     this.callPots(relevantPots, player);
 
