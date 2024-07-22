@@ -116,7 +116,7 @@ function updateSlider() {
 }
 
 async function closeEndContent() {
-    document.getElementById('endDisplay').style.display = 'none';
+    
 }
 
 // var stopGate = false;
@@ -154,6 +154,14 @@ function setUserAction(action) {
 function waitUserAction() {
     return new Promise(resolve => {
         window.setUserAction = function() {
+            resolve();
+        };
+    });
+}
+
+function waitEndAction() {
+    return new Promise(resolve => {
+        window.closeEndContent = function() {
             resolve();
         };
     });
@@ -676,6 +684,10 @@ class Hand {
                 // var playerAction = await player.promptMove();
                 if (player.id == "p1") {
                     playerAction = await player.promptMove();
+                    this.showAction(player, playerAction);
+                    await this.delay(1000);
+                    Frontend.hideDiv(player.id + "action")
+
                 } else if (player.money > 0) {
                     playerAction = await this.cpuMove(player, this.getPlayerByID("p1"), tempOrderedCurrentPots[0].call);
                 }
@@ -913,7 +925,7 @@ class Hand {
 
             rankedPlayers = [rankedPlayers[0], ...rankedPlayers.slice(1).sort((a, b) => a.rank - b.rank)];
 
-            this.endround(rankedPlayers);
+            await this.endround(rankedPlayers);
             this.active = false;
         } else if (end == true) {
             console.log('end hit');
@@ -969,7 +981,7 @@ class Hand {
                 }
             }            
 
-            this.endround([...showdownPlayers, ...others]);
+            await this.endround([...showdownPlayers, ...others]);
             // Distribute Pot
 
             this.active = false;
@@ -1036,12 +1048,12 @@ class Hand {
             }
             allInThreshold = 0.95
             if (randNum > allInThreshold) {
-                playerAction = ["allIn", player.money, "check"]
+                playerAction = ["allIn", player.money]
             } else if (randNum > raiseThreshold) {
                 if (randNum > 0.8) {
-                    playerAction = ["raise", Math.ceil(player.money * 0.4), "check"]
+                    playerAction = ["raise", Math.ceil(player.money * 0.4)]
                 } else {                
-                    playerAction = ["raise", Math.ceil(player.money * 0.1), "check"]
+                    playerAction = ["raise", Math.ceil(player.money * 0.1)]
                 }
             } else {
                 playerAction = ["checkcall", 0, "check"]
@@ -1088,7 +1100,7 @@ class Hand {
     }
 
     showAction(p, action) {
-        if (action.length > 2) {
+        if (action.length > 2 && action[2] == "check") {
             Frontend.changeTextContent(p.id + "action", "Check")
             Frontend.changeParagraphColor(p.id + "action", "green")
             Frontend.showDiv(p.id + "action")
@@ -1442,7 +1454,7 @@ class Hand {
     }
    
 
-    endround(playerArr) {
+    async endround(playerArr) {
         for (let p of players) {
             p.wonThisHand = p.money - p.moneyi
         }
@@ -1488,6 +1500,8 @@ class Hand {
         }
 
         Frontend.showDiv('endDisplay');
+        await waitEndAction();
+        document.getElementById('endDisplay').style.display = 'none';
 
     }
 
