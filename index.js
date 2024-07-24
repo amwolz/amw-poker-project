@@ -684,6 +684,9 @@ class Hand {
                 // var playerAction = await player.promptMove();
                 if (player.id == "p1") {
                     playerAction = await player.promptMove();
+                    if (playerAction[0] == "checkcall" && tempOrderedCurrentPots[0].call == 0) {
+                        playerAction.push("check")
+                    }
                     this.showAction(player, playerAction);
                     await this.delay(1000);
                     Frontend.hideDiv(player.id + "action")
@@ -724,6 +727,7 @@ class Hand {
                 }
 
                 // currentPots[0].call is max call amount
+                console.log(playerAction)
                 if (playerAction[0] == 'raise') {
                     console.log('hit raise');
                     console.log(currentPots);
@@ -1028,7 +1032,6 @@ class Hand {
         let allInThreshold;
         let raiseThreshold;
         let callThreshold;
-        let foldThreshold;
         await this.delay(1000);
         if (currentCall >= player.money + player.betThisHand) {
             allInThreshold = 0.3
@@ -1046,21 +1049,21 @@ class Hand {
             } else {
                 raiseThreshold = 0.15
             }
-            allInThreshold = 0.95
+            allInThreshold = 0.97
             if (randNum > allInThreshold) {
                 playerAction = ["allIn", player.money]
             } else if (randNum > raiseThreshold) {
                 if (randNum > 0.8) {
-                    playerAction = ["raise", Math.ceil(player.money * 0.4)]
+                    playerAction = ["raise", Math.ceil((player.money + player.betThisRound - currentCall) * 0.4)]
                 } else {                
-                    playerAction = ["raise", Math.ceil(player.money * 0.1)]
+                    playerAction = ["raise", Math.ceil((player.money + player.betThisRound - currentCall) * 0.1)]
                 }
             } else {
                 playerAction = ["checkcall", 0, "check"]
             }
         } else {
             if (player.rank < human.rank) {
-                allInThreshold = 0.95
+                allInThreshold = 0.96
                 raiseThreshold = 0.8
                 callThreshold = 0.1
                 if (randNum > allInThreshold) {
@@ -1087,6 +1090,10 @@ class Hand {
                 }
 
             }
+        }
+        if (playerAction[1] < 0) {
+            // failsafe for demo, though this should never hit
+            playerAction[1] = 1
         }
         console.log(playerAction)
         this.showAction(player, playerAction)
@@ -1579,7 +1586,7 @@ function main() {
     // Frontend.hideDiv("cardContainer")
     // Frontend.changeImage("card1Image", "images/cards/clubs_2.png")
     
-    p1 = new Player(false, username, 'p1', charSelect, money=200);
+    p1 = new Player(false, username, 'p1', localStorage.getItem("charSelect"), money=200);
     p2 = new Player(false, "Stephen", 'p2', 'images/player2.png', money=200);
     p3 = new Player(false, "Alyssa", 'p3', 'images/player3.png', money=200);
     p4 = new Player(false, "Eric", 'p4', 'images/player4.png', money=200);
